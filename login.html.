@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Entrar</title>
+<style>
+  :root {
+    --cor-primaria: #1b5e20;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f4f6f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  .cartao {
+    background: white;
+    border-radius: 16px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    text-align: center;
+  }
+  .logo {
+    max-width: 120px;
+    max-height: 80px;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 1.25rem;
+    margin: 0 0 24px;
+    color: #222;
+  }
+  label {
+    display: block;
+    text-align: left;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 4px;
+  }
+  input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--cor-primaria);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .erro {
+    color: #c62828;
+    font-size: 0.85rem;
+    margin-top: 12px;
+    min-height: 1.2em;
+  }
+</style>
+</head>
+<body>
+
+<div class="cartao">
+  <img id="logo-farmacia" class="logo" style="display:none" alt="Logótipo">
+  <h1 id="titulo">AlviroGest</h1>
+
+  <form id="form-login">
+    <label for="email">E-mail</label>
+    <input type="email" id="email" required autocomplete="username">
+
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" required autocomplete="current-password">
+
+    <button type="submit" id="botao-entrar">Entrar</button>
+  </form>
+
+  <div class="erro" id="mensagem-erro"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script>
+  const SUPABASE_URL = "https://qillinntbhoecurnuheq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh";
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const form = document.getElementById("form-login");
+  const botaoEntrar = document.getElementById("botao-entrar");
+  const mensagemErro = document.getElementById("mensagem-erro");
+
+  form.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    mensagemErro.textContent = "";
+    botaoEntrar.disabled = true;
+    botaoEntrar.textContent = "A entrar...";
+
+    const email = document.getElementById("email").value.trim();
+    const senha = document.getElementById("senha").value;
+
+    try {
+      const { data: sessao, error: erroLogin } =
+        await supabaseClient.auth.signInWithPassword({ email, password: senha });
+
+      if (erroLogin) throw new Error("E-mail ou senha incorrectos.");
+
+      const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+
+      if (!contexto) {
+        await supabaseClient.auth.signOut();
+        throw new Error("Este utilizador não está associado a nenhuma farmácia.");
+      }
+
+      AuthFarmacia.aplicarMarca(contexto.farmacia);
+
+      window.location.href = "app.html";
+    } catch (erro) {
+      mensagemErro.textContent = erro.message || "Não foi possível entrar.";
+      botaoEntrar.disabled = false;
+      botaoEntrar.textContent = "Entrar";
+    }
+  });
+
+  (async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+      if (contexto) {
+        AuthFarmacia.aplicarMarca(contexto.farmacia);
+        window.location.href = "app.html";
+      }
+    }
+  })();
+</script>
+
+</body>
+</html>
