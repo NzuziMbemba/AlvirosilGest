@@ -139,6 +139,7 @@
   <nav style="display:flex; align-items:center; gap:16px">
     <a href="produtos.html" id="link-produtos" style="color:white; font-size:0.9rem; display:none">Produtos</a>
     <a href="configuracoes.html" id="link-configuracoes" style="color:white; font-size:0.9rem; display:none">Configurações</a>
+    <a href="documentos-rh.html" id="link-documentos" style="color:white; font-size:0.9rem; display:none">Documentos RH</a>
     <button id="botao-sair">Sair</button>
   </nav>
 </header>
@@ -209,6 +210,7 @@
     }
     if (contexto.papel === "gerente") {
       document.getElementById("link-configuracoes").style.display = "inline";
+      document.getElementById("link-documentos").style.display = "inline";
     }
 
     await carregarProdutos();
