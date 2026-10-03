@@ -20,17 +20,20 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   header .marca { display: flex; align-items: center; gap: 8px; }
   header img { max-height: 32px; }
+  header nav { display: flex; flex-wrap: wrap; gap: 14px; }
   header nav a {
     color: white;
     text-decoration: none;
-    margin-left: 16px;
     font-size: 0.9rem;
     opacity: 0.9;
   }
   header nav a.activo { font-weight: 700; opacity: 1; text-decoration: underline; }
+  header nav a.so-gerente { display: none; }
   main {
     display: grid;
     grid-template-columns: 1fr;
@@ -106,8 +109,12 @@
     <strong id="titulo">AlviroGest</strong>
   </div>
   <nav>
+    <a href="painel.html">Painel</a>
     <a href="app.html">Vendas</a>
     <a href="produtos.html" class="activo">Produtos</a>
+    <a href="funcionarios.html" class="so-gerente">Funcionários</a>
+    <a href="configuracoes.html" class="so-gerente">Configurações</a>
+    <a href="documentos-rh.html" class="so-gerente">Documentos RH</a>
   </nav>
 </header>
 
@@ -122,6 +129,78 @@
 
       <label for="codigo-barras">Código de barras (opcional)</label>
       <input type="text" id="codigo-barras">
+
+      <label for="categoria">Categoria (ex.: Analgésicos)</label>
+      <input type="text" id="categoria" list="lista-categorias" maxlength="60" autocomplete="off" placeholder="Escolha ou escreva uma nova">
+      <datalist id="lista-categorias">
+        <option value="Analgésicos e antipiréticos">
+        <option value="Anestésicos locais">
+        <option value="Anti-inflamatórios">
+        <option value="Corticosteróides">
+        <option value="Antibióticos">
+        <option value="Antifúngicos">
+        <option value="Antivirais">
+        <option value="Antipalúdicos">
+        <option value="Antiparasitários e antihelmínticos">
+        <option value="Antituberculosos">
+        <option value="Antirretrovirais">
+        <option value="Anti-histamínicos e antialérgicos">
+        <option value="Antiácidos e anti-ulcerosos">
+        <option value="Antieméticos">
+        <option value="Antidiarreicos e reidratantes orais">
+        <option value="Laxantes">
+        <option value="Antiespasmódicos">
+        <option value="Digestivos e hepatoprotectores">
+        <option value="Anti-hipertensivos">
+        <option value="Diuréticos">
+        <option value="Cardiovasculares">
+        <option value="Anticoagulantes e antiagregantes">
+        <option value="Hipolipemiantes">
+        <option value="Antidiabéticos orais">
+        <option value="Insulinas">
+        <option value="Tiroide">
+        <option value="Antitússicos e expectorantes">
+        <option value="Broncodilatadores e antiasmáticos">
+        <option value="Descongestionantes nasais">
+        <option value="Anticonvulsivantes">
+        <option value="Antidepressivos">
+        <option value="Ansiolíticos e hipnóticos">
+        <option value="Antipsicóticos">
+        <option value="Antiparkinsónicos">
+        <option value="Relaxantes musculares">
+        <option value="Antienxaquecas">
+        <option value="Anti-gotosos">
+        <option value="Cálcio e osteoporose">
+        <option value="Vitaminas">
+        <option value="Minerais e suplementos">
+        <option value="Tónicos e estimulantes do apetite">
+        <option value="Contraceptivos">
+        <option value="Saúde da mulher e ginecológicos">
+        <option value="Hormonas">
+        <option value="Saúde do homem e urológicos">
+        <option value="Dermatológicos">
+        <option value="Antissépticos e desinfectantes">
+        <option value="Cicatrizantes e tratamento de feridas">
+        <option value="Oftálmicos">
+        <option value="Otológicos">
+        <option value="Saúde oral e dentária">
+        <option value="Vacinas">
+        <option value="Soros e fluidos endovenosos">
+        <option value="Injectáveis">
+        <option value="Material de penso">
+        <option value="Material descartável">
+        <option value="Dispositivos médicos">
+        <option value="Testes rápidos">
+        <option value="Higiene pessoal">
+        <option value="Cosmética e cuidados da pele">
+        <option value="Bebé e puericultura">
+        <option value="Nutrição e leites infantis">
+        <option value="Fitoterapia e produtos naturais">
+        <option value="Preservativos">
+        <option value="Repelentes e protecção solar">
+        <option value="Veterinários">
+        <option value="Outros">
+      </datalist>
 
       <label for="preco-venda">Preço de venda (Kz)</label>
       <input type="number" id="preco-venda" min="0" step="0.01" required>
@@ -146,13 +225,16 @@
 
   <section class="painel">
     <h2>Produtos existentes</h2>
-    <input type="search" id="pesquisa-produto" placeholder="Pesquisar..." style="margin-bottom:12px">
+    <input type="search" id="pesquisa-produto" placeholder="Pesquisar..." style="margin-bottom:8px">
+    <select id="filtro-categoria" style="margin-bottom:12px">
+      <option value="">Todas as categorias</option>
+    </select>
     <table>
       <thead>
-        <tr><th>Nome</th><th>Preço</th><th>Stock</th><th></th></tr>
+        <tr><th>Nome</th><th>Categoria</th><th>Preço</th><th>Stock</th><th></th></tr>
       </thead>
       <tbody id="corpo-tabela-produtos">
-        <tr><td colspan="4">A carregar...</td></tr>
+        <tr><td colspan="5">A carregar...</td></tr>
       </tbody>
     </table>
   </section>
@@ -180,6 +262,7 @@
   const mensagemProduto = document.getElementById("mensagem-produto");
   const corpoTabela = document.getElementById("corpo-tabela-produtos");
   const campoPesquisa = document.getElementById("pesquisa-produto");
+  const filtroCategoria = document.getElementById("filtro-categoria");
 
   function formatarKz(valor) {
     return Number(valor).toLocaleString("pt-AO", { minimumFractionDigits: 2 }) + " Kz";
@@ -199,6 +282,12 @@
       return;
     }
 
+    if (contexto.papel === "gerente") {
+      document.querySelectorAll("header nav a.so-gerente").forEach((a) => {
+        a.style.display = "inline";
+      });
+    }
+
     document.getElementById("conteudo-principal").style.display = "grid";
     await carregarProdutos();
   }
@@ -206,28 +295,30 @@
   async function carregarProdutos() {
     const { data, error } = await supabaseClient
       .from("produtos")
-      .select("id, nome, codigo_barras, preco_venda, quantidade_stock, categoria_imposto")
+      .select("id, nome, codigo_barras, categoria, preco_venda, quantidade_stock, categoria_imposto")
       .order("nome");
 
     if (error) {
-      corpoTabela.innerHTML = "<tr><td colspan='4'>Erro ao carregar produtos.</td></tr>";
+      corpoTabela.innerHTML = "<tr><td colspan='5'>Erro ao carregar produtos.</td></tr>";
       console.error(error);
       return;
     }
 
     produtos = data;
-    desenharTabela(produtos);
+    actualizarFiltroCategorias();
+    aplicarFiltros();
   }
 
   function desenharTabela(lista) {
     if (lista.length === 0) {
-      corpoTabela.innerHTML = "<tr><td colspan='4'>Nenhum produto ainda.</td></tr>";
+      corpoTabela.innerHTML = "<tr><td colspan='5'>Nenhum produto ainda.</td></tr>";
       return;
     }
 
     corpoTabela.innerHTML = lista.map((produto) => `
       <tr>
         <td>${escaparHtml(produto.nome)}</td>
+        <td>${escaparHtml(produto.categoria || "—")}</td>
         <td>${formatarKz(produto.preco_venda)}</td>
         <td>${produto.quantidade_stock}</td>
         <td class="acoes">
@@ -241,10 +332,30 @@
     });
   }
 
-  campoPesquisa.addEventListener("input", () => {
+  function actualizarFiltroCategorias() {
+    const escolhida = filtroCategoria.value;
+    const categorias = [...new Set(produtos.map((p) => p.categoria).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "pt"));
+    filtroCategoria.innerHTML = '<option value="">Todas as categorias</option>' +
+      categorias.map((c) => `<option value="${escaparHtml(c).replace(/"/g, "&quot;")}">${escaparHtml(c)}</option>`).join("") +
+      '<option value="__sem__">Sem categoria</option>';
+    filtroCategoria.value = [...filtroCategoria.options].some((o) => o.value === escolhida) ? escolhida : "";
+  }
+
+  function aplicarFiltros() {
     const termo = campoPesquisa.value.trim().toLowerCase();
-    desenharTabela(produtos.filter((p) => p.nome.toLowerCase().includes(termo)));
-  });
+    const categoria = filtroCategoria.value;
+    desenharTabela(produtos.filter((p) => {
+      const passaNome = p.nome.toLowerCase().includes(termo);
+      const passaCategoria =
+        !categoria ||
+        (categoria === "__sem__" ? !p.categoria : p.categoria === categoria);
+      return passaNome && passaCategoria;
+    }));
+  }
+
+  campoPesquisa.addEventListener("input", aplicarFiltros);
+  filtroCategoria.addEventListener("change", aplicarFiltros);
 
   function carregarNoFormulario(produtoId) {
     const produto = produtos.find((p) => p.id === produtoId);
@@ -253,6 +364,7 @@
     document.getElementById("produto-id").value = produto.id;
     document.getElementById("nome").value = produto.nome;
     document.getElementById("codigo-barras").value = produto.codigo_barras || "";
+    document.getElementById("categoria").value = produto.categoria || "";
     document.getElementById("preco-venda").value = produto.preco_venda;
     document.getElementById("quantidade-stock").value = produto.quantidade_stock;
     document.getElementById("categoria-imposto").value = produto.categoria_imposto || "NOR";
@@ -282,6 +394,7 @@
     const dados = {
       nome: document.getElementById("nome").value.trim(),
       codigo_barras: document.getElementById("codigo-barras").value.trim() || null,
+      categoria: document.getElementById("categoria").value.trim() || null,
       preco_venda: Number(document.getElementById("preco-venda").value),
       quantidade_stock: Number(document.getElementById("quantidade-stock").value),
       categoria_imposto: document.getElementById("categoria-imposto").value,
