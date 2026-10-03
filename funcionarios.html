@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Funcionários</title>
+<style>
+  :root { --cor-primaria: #1b5e20; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f4f6f4;
+    color: #222;
+  }
+  header {
+    background: var(--cor-primaria);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header .marca { display: flex; align-items: center; gap: 8px; }
+  header img { max-height: 32px; }
+  header nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 16px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  header nav a.activo { font-weight: 700; opacity: 1; text-decoration: underline; }
+  main { max-width: 560px; margin: 0 auto; padding: 16px; }
+  .painel {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+  }
+  .painel h2 { margin-top: 0; font-size: 1.05rem; }
+  .painel p.explicacao { font-size: 0.85rem; color: #777; margin-top: -8px; }
+  label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 4px; margin-top: 12px; }
+  input, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  button.principal {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--cor-primaria);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.principal:disabled { opacity: 0.6; cursor: not-allowed; }
+  button.perigo {
+    background: none;
+    border: 1px solid #c62828;
+    color: #c62828;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  button.perigo:disabled { opacity: 0.5; cursor: not-allowed; }
+  .mensagem { font-size: 0.9rem; margin-top: 10px; min-height: 1.2em; }
+  .mensagem.sucesso { color: #1b5e20; }
+  .mensagem.erro { color: #c62828; }
+  .tabela-rolavel { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; }
+  th { color: #666; font-weight: 600; }
+  td.acao { text-align: right; white-space: nowrap; }
+  .papel-tag {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef4ee;
+    color: var(--cor-primaria);
+  }
+  .aviso-acesso { max-width: 480px; margin: 60px auto; text-align: center; color: #555; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <img id="logo-farmacia" style="display:none" alt="Logótipo">
+    <strong id="titulo">AlviroGest</strong>
+  </div>
+  <nav>
+    <a href="app.html">Vendas</a>
+    <a href="produtos.html">Produtos</a>
+    <a href="funcionarios.html" class="activo">Funcionários</a>
+    <a href="configuracoes.html">Configurações</a>
+  </nav>
+</header>
+
+<main id="conteudo-principal" style="display:none">
+
+  <section class="painel">
+    <h2>Novo funcionário</h2>
+    <p class="explicacao">Cria o login de uma pessoa da caixa ou do farmacêutico.</p>
+    <form id="form-funcionario">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" required autocomplete="off">
+
+      <label for="senha-inicial">Senha inicial</label>
+      <input type="text" id="senha-inicial" required minlength="8" maxlength="72"
+             placeholder="Mínimo 8 caracteres" autocomplete="off">
+
+      <label for="papel">Papel</label>
+      <select id="papel">
+        <option value="caixa">Caixa</option>
+        <option value="farmaceutico">Farmacêutico</option>
+      </select>
+
+      <button type="submit" class="principal" id="botao-criar">Criar funcionário</button>
+    </form>
+    <div class="mensagem" id="mensagem-funcionario"></div>
+  </section>
+
+  <section class="painel">
+    <h2>Funcionários actuais</h2>
+    <div class="tabela-rolavel">
+      <table>
+        <thead>
+          <tr><th>E-mail</th><th>Papel</th><th></th></tr>
+        </thead>
+        <tbody id="corpo-tabela-funcionarios">
+          <tr><td colspan="3">A carregar...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="mensagem" id="mensagem-lista"></div>
+  </section>
+
+</main>
+
+<div class="aviso-acesso" id="aviso-sem-acesso" style="display:none">
+  <p>Esta área é só para o Gerente da farmácia.</p>
+  <a href="app.html">Voltar às vendas</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script>
+  const SUPABASE_URL = "https://qillinntbhoecurnuheq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh";
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let idDoGerente = null;
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = "login.html"; return; }
+    idDoGerente = user.id;
+
+    const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!contexto) { window.location.href = "login.html"; return; }
+
+    AuthFarmacia.aplicarMarca(contexto.farmacia);
+
+    if (contexto.papel !== "gerente") {
+      document.getElementById("aviso-sem-acesso").style.display = "block";
+      return;
+    }
+
+    document.getElementById("conteudo-principal").style.display = "block";
+    await carregarFuncionarios();
+  }
+
+  // Lê a mensagem de erro real devolvida pela Edge Function
+  async function mensagemDeErro(erro, padrao) {
+    try {
+      const corpo = await erro.context.json();
+      if (corpo?.erro) return corpo.erro;
+    } catch (_) { /* sem corpo JSON */ }
+    return erro?.message || padrao;
+  }
+
+  async function carregarFuncionarios() {
+    const corpoTabela = document.getElementById("corpo-tabela-funcionarios");
+    const { data, error } = await supabaseClient
+      .from("funcionarios_da_farmacia")
+      .select("user_id, email, papel")
+      .order("papel");
+
+    if (error) {
+      corpoTabela.innerHTML = "<tr><td colspan='3'>Não foi possível carregar a lista.</td></tr>";
+      console.error(error);
+      return;
+    }
+
+    if (data.length === 0) {
+      corpoTabela.innerHTML = "<tr><td colspan='3'>Nenhum funcionário ainda.</td></tr>";
+      return;
+    }
+
+    corpoTabela.innerHTML = data.map((f) => {
+      const podeDesactivar = f.papel !== "gerente" && f.user_id !== idDoGerente;
+      const botao = podeDesactivar
+        ? `<button type="button" class="perigo" data-id="${escaparHtml(f.user_id)}" data-email="${escaparHtml(f.email)}">Desactivar</button>`
+        : "";
+      return `
+        <tr>
+          <td>${escaparHtml(f.email)}</td>
+          <td><span class="papel-tag">${escaparHtml(f.papel)}</span></td>
+          <td class="acao">${botao}</td>
+        </tr>`;
+    }).join("");
+  }
+
+  // Desactivar funcionário (delegação de eventos na tabela)
+  document.getElementById("corpo-tabela-funcionarios").addEventListener("click", async (evento) => {
+    const botao = evento.target.closest("button.perigo");
+    if (!botao) return;
+
+    const email = botao.dataset.email;
+    if (!confirm(`Desactivar ${email}? Deixa de conseguir entrar no sistema.`)) return;
+
+    const mensagem = document.getElementById("mensagem-lista");
+    mensagem.textContent = "";
+    mensagem.className = "mensagem";
+    botao.disabled = true;
+
+    try {
+      const { data, error } = await supabaseClient.functions.invoke("desativar-funcionario", {
+        body: { user_id: botao.dataset.id },
+      });
+      if (error) throw error;
+      if (data?.erro) throw new Error(data.erro);
+
+      mensagem.textContent = `${email} foi desactivado.`;
+      mensagem.classList.add("sucesso");
+      await carregarFuncionarios();
+    } catch (erro) {
+      console.error(erro);
+      mensagem.textContent = await mensagemDeErro(erro, "Não foi possível desactivar o funcionário.");
+      mensagem.classList.add("erro");
+      botao.disabled = false;
+    }
+  });
+
+  document.getElementById("form-funcionario").addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const mensagem = document.getElementById("mensagem-funcionario");
+    const botao = document.getElementById("botao-criar");
+    mensagem.textContent = "";
+    mensagem.className = "mensagem";
+    botao.disabled = true;
+    botao.textContent = "A criar...";
+
+    const email = document.getElementById("email").value.trim();
+    const senha_inicial = document.getElementById("senha-inicial").value;
+    const papel = document.getElementById("papel").value;
+
+    try {
+      const { data, error } = await supabaseClient.functions.invoke("criar-funcionario", {
+        body: { email, senha_inicial, papel },
+      });
+
+      if (error) throw error;
+      if (data?.erro) throw new Error(data.erro);
+
+      mensagem.textContent = `Funcionário criado: ${email} (${papel}).`;
+      mensagem.classList.add("sucesso");
+      document.getElementById("form-funcionario").reset();
+      await carregarFuncionarios();
+    } catch (erro) {
+      console.error(erro);
+      mensagem.textContent = await mensagemDeErro(erro, "Não foi possível criar o funcionário.");
+      mensagem.classList.add("erro");
+    } finally {
+      botao.disabled = false;
+      botao.textContent = "Criar funcionário";
+    }
+  });
+
+  function escaparHtml(texto) {
+    const div = document.createElement("div");
+    div.textContent = texto ?? "";
+    return div.innerHTML.replace(/"/g, "&quot;");
+  }
+
+  iniciar();
+</script>
+
+</body>
+</html>
