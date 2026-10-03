@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Painel</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .banner { background: linear-gradient(135deg,#1b5e20,#2e7d32); color:#fff; border-radius:16px; padding:20px; margin-bottom:14px; }
+  .banner small { opacity:.85; display:block; }
+  .banner h1 { margin:6px 0; font-size:1.6rem; }
+  .crit { border:2px solid #c62828; border-radius:14px; padding:12px 14px; margin-bottom:14px; background:var(--cartao); display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .crit b { color:#c62828; }
+  .crit small { display:block; color:var(--suave); margin-top:2px; }
+  .crit button { background:#1b5e20; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-weight:600; cursor:pointer; }
+  .boasvindas { background:linear-gradient(135deg,#1565c0,#1e88e5); color:#fff; border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .boasvindas button { background:rgba(255,255,255,.2); border:none; color:#fff; width:32px; height:32px; border-radius:8px; cursor:pointer; }
+  h2.titulo { font-size:1.25rem; margin:18px 0 10px; }
+  .cartoes { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px; }
+  @media (min-width:720px){ .cartoes { grid-template-columns:repeat(4,1fr); } }
+  .cartao { background:var(--cartao); border-radius:12px; padding:14px; box-shadow:0 2px 12px rgba(0,0,0,.06); border-left:4px solid #1b5e20; }
+  .cartao.azul { border-left-color:#1565c0; } .cartao.verm { border-left-color:#c62828; } .cartao.lar { border-left-color:#ef8f00; }
+  .rotulo { font-size:.68rem; color:var(--suave); text-transform:uppercase; letter-spacing:.05em; }
+  .valor { font-size:1.9rem; font-weight:800; margin-top:6px; }
+  .nota { font-size:.78rem; color:var(--suave); margin-top:2px; }
+  .painel { background:var(--cartao); border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
+  .painel h3 { margin:0; padding:14px 16px; border-bottom:1px solid var(--borda); font-size:1.05rem; }
+  .painel .corpo { padding:12px 16px; }
+  .alerta { background:#fff7ec; color:#333; border-left:4px solid #ef8f00; border-radius:6px; padding:10px 12px; margin-bottom:8px; font-size:.9rem; }
+  .alerta.zero { background:#fdecea; border-left-color:#c62828; }
+  html[data-tema="dark"] .alerta { background:#2b2417; color:#eee; } html[data-tema="dark"] .alerta.zero { background:#2d1a1a; }
+  .busca { width:100%; padding:10px; border:1px solid var(--borda); background:var(--fundo); color:var(--texto); border-radius:8px; font-size:1rem; margin-bottom:12px; }
+  .vazio { color:var(--suave); } .erro { color:#c62828; font-size:.9rem; }
+  .aviso-acesso { max-width:480px; margin:60px auto; text-align:center; }
+</style>
+</head>
+<body>
+
+<div id="topo"></div>
+
+<main id="conteudo-principal" style="display:none">
+  <section class="banner">
+    <small id="saudacao"></small>
+    <h1 id="nome-farmacia">Farmácia</h1>
+    <small>Painel de Gestão · <span id="data-extenso"></span></small>
+  </section>
+
+  <section class="crit" id="faixa-critica" style="display:none">
+    <div><b id="crit-titulo"></b><small id="crit-nomes"></small></div>
+    <button id="botao-whatsapp">📲 Enviar alerta WhatsApp</button>
+  </section>
+
+  <section class="boasvindas" id="boasvindas">
+    <div><strong id="bv-titulo"></strong><div>Boas vendas e bom trabalho! 💚</div></div>
+    <button id="fechar-bv" aria-label="Fechar">✕</button>
+  </section>
+
+  <h2 class="titulo">Painel Geral</h2>
+  <section class="cartoes">
+    <div class="cartao"><div class="rotulo">Produtos em stock</div><div class="valor" id="num-produtos">–</div><div class="nota">itens cadastrados</div></div>
+    <div class="cartao azul"><div class="rotulo">Vendas hoje</div><div class="valor" id="num-vendas">–</div><div class="nota" id="total-vendas">Kz 0,00</div></div>
+    <div class="cartao verm"><div class="rotulo">Stock crítico</div><div class="valor" id="num-critico">–</div><div class="nota">abaixo do mínimo</div></div>
+    <div class="cartao lar"><div class="rotulo">Sem stock</div><div class="valor" id="num-zero">–</div><div class="nota">produtos esgotados</div></div>
+  </section>
+
+  <section class="painel">
+    <h3>⚠️ Alertas</h3>
+    <div class="corpo">
+      <input type="search" class="busca" id="pesquisa-alertas" placeholder="🔍 Pesquisar nos alertas...">
+      <div id="lista-alertas"><p class="vazio">A carregar...</p></div>
+      <div class="erro" id="mensagem-erro"></div>
+    </div>
+  </section>
+</main>
+
+<div class="aviso-acesso" id="aviso-sem-acesso" style="display:none">
+  <p>Esta área é só para o Gerente e o Farmacêutico.</p>
+  <a href="app.html">Voltar às vendas</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const SUPABASE_URL = "https://qillinntbhoecurnuheq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh";
+  const STOCK_MINIMO_PADRAO = 10;
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let alertas = [];
+  let farmaciaNome = "";
+
+  const formatarKz = (v) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(v || 0);
+  const $ = (id) => document.getElementById(id);
+  function esc(t) { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; }
+
+  async function sair() { await supabaseClient.auth.signOut(); window.location.href = "login.html"; }
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = "login.html"; return; }
+    const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!contexto) { window.location.href = "login.html"; return; }
+
+    const nome = user.user_metadata?.nome || (user.email || "").split("@")[0];
+    MenuAlviro.montar({ papel: contexto.papel, activo: "painel", nome, aoSair: sair });
+    AuthFarmacia.aplicarMarca(contexto.farmacia);
+
+    if (contexto.papel === "caixa") { $("aviso-sem-acesso").style.display = "block"; return; }
+
+    farmaciaNome = contexto.farmacia.nome || "Farmácia";
+    const hora = new Date().getHours();
+    const saudacao = hora < 12 ? "Bom dia" : hora < 19 ? "Boa tarde" : "Boa noite";
+    $("saudacao").textContent = `${saudacao}, ${nome}`;
+    $("nome-farmacia").textContent = farmaciaNome;
+    $("bv-titulo").textContent = `👋 ${saudacao}! Saúde em primeiro lugar`;
+    $("data-extenso").textContent = new Date().toLocaleDateString("pt-AO", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    $("conteudo-principal").style.display = "block";
+    await Promise.all([carregarProdutos(), carregarVendasDeHoje()]);
+  }
+
+  async function carregarProdutos() {
+    let r = await supabaseClient.from("produtos").select("id, nome, quantidade_stock, stock_minimo").order("nome");
+    if (r.error) r = await supabaseClient.from("produtos").select("id, nome, quantidade_stock").order("nome");
+    if (r.error) { console.error(r.error); $("lista-alertas").innerHTML = ""; $("mensagem-erro").textContent = "Não foi possível carregar os produtos."; return; }
+
+    const lista = r.data.map((p) => ({ nome: p.nome, stock: p.quantidade_stock ?? 0, minimo: p.stock_minimo ?? STOCK_MINIMO_PADRAO }));
+    alertas = lista.filter((p) => p.stock <= p.minimo).sort((a, b) => a.stock - b.stock || a.nome.localeCompare(b.nome));
+
+    $("num-produtos").textContent = lista.length;
+    $("num-critico").textContent = alertas.length;
+    $("num-zero").textContent = lista.filter((p) => p.stock <= 0).length;
+
+    if (alertas.length) {
+      $("faixa-critica").style.display = "flex";
+      $("crit-titulo").textContent = `⚠️ Stock Crítico: ${alertas.length} produto(s)`;
+      $("crit-nomes").textContent = alertas.slice(0, 5).map((p) => p.nome).join(", ") + (alertas.length > 5 ? "…" : "");
+    }
+    desenhar(alertas);
+  }
+
+  function desenhar(itens) {
+    $("lista-alertas").innerHTML = itens.length ? itens.map((p) => `
+      <div class="alerta ${p.stock <= 0 ? "zero" : ""}">📦 <strong>${esc(p.nome)}</strong> — ${p.stock <= 0 ? "Sem stock" : "Stock baixo"}: ${p.stock} un. (mín: ${p.minimo}).</div>`).join("")
+      : '<p class="vazio">Sem alertas de stock. ✅</p>';
+  }
+
+  async function carregarVendasDeHoje() {
+    const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
+    const { data, error } = await supabaseClient.from("vendas").select("total").gte("created_at", inicio.toISOString());
+    if (error) { console.error("vendas de hoje:", error); $("num-vendas").textContent = "–"; $("total-vendas").textContent = "indisponível"; return; }
+    $("num-vendas").textContent = data.length;
+    $("total-vendas").textContent = formatarKz(data.reduce((s, v) => s + Number(v.total || 0), 0));
+  }
+
+  $("pesquisa-alertas").addEventListener("input", (e) => {
+    const t = e.target.value.trim().toLowerCase();
+    desenhar(t ? alertas.filter((p) => p.nome.toLowerCase().includes(t)) : alertas);
+  });
+  $("fechar-bv").addEventListener("click", () => { $("boasvindas").style.display = "none"; });
+  $("botao-whatsapp").addEventListener("click", () => {
+    const texto = `⚠️ Stock crítico — ${farmaciaNome}\n` + alertas.slice(0, 30).map((p) => `• ${p.nome}: ${p.stock} un. (mín ${p.minimo})`).join("\n");
+    window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
+  });
+
+  iniciar();
+</script>
+</body>
+</html>
