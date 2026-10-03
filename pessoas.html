@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Gestão de Pessoas</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 16px; }
+  .cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .suave { color: var(--suave); font-size: .85rem; }
+  .btn { background: var(--cor-primaria); color: #fff; border: none; border-radius: 999px; padding: 8px 14px; font-weight: 600; cursor: pointer; font-size: .85rem; }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  .filtros { display: flex; gap: 8px; margin: 12px 0; }
+  .filtros input { flex: 1; } .filtros select { width: 40%; }
+  input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; font-family: inherit; }
+  label { display: block; font-size: .82rem; color: var(--suave); margin: 10px 0 4px; font-weight: 600; }
+  .item { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 1px 8px rgba(0,0,0,.07); }
+  .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .doc { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--borda); font-size: .85rem; }
+  .doc span:first-child { overflow-wrap: anywhere; }
+  .av { flex: none; overflow: hidden; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #1b4f8a; background: #e3ecf8; }
+  .info { flex: 1; min-width: 0; } .info small { display: block; color: var(--suave); font-size: .78rem; margin-top: 2px; }
+  .acc { display: flex; flex-direction: column; gap: 6px; }
+  .tag { font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: #e3f6e6; color: #1b7a2e; margin-left: 4px; }
+  .tag.inactivo { background: #eee; color: #777; }
+  .sec { border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .sec h4 { margin: 0 0 6px; font-size: .82rem; letter-spacing: .05em; text-transform: uppercase; }
+  .s1 { background: rgba(46,125,50,.10); } .s2 { background: rgba(21,101,192,.10); } .s3 { background: rgba(46,125,50,.06); }
+  .s4 { background: rgba(239,143,0,.12); } .s5 { background: rgba(128,128,128,.10); }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hist { font-size: .88rem; padding: 6px 0; border-bottom: 1px solid var(--borda); display: flex; justify-content: space-between; gap: 8px; }
+  .linha { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--borda); font-size: .92rem; }
+  .linha span:first-child { color: var(--suave); }
+  .principal { width: 100%; margin-top: 8px; padding: 12px; background: var(--cor-primaria); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  .msg { font-size: .9rem; margin-top: 8px; min-height: 1.2em; } .msg.ok { color: #1b7a2e; } .msg.erro { color: #c62828; }
+  .aviso-acesso { max-width: 480px; margin: 60px auto; text-align: center; }
+  @media print { #topo, #lista-painel, #form-painel, .nao-imprimir { display: none !important; } body { background: #fff; color: #000; } .painel { box-shadow: none; } }
+</style>
+</head>
+<body>
+<div id="topo" class="nao-imprimir"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">🧑‍💼 Gestão de Pessoas</h2>
+
+  <section class="painel" id="lista-painel">
+    <div class="cab"><strong>Ficha de Funcionários</strong><button class="btn" id="novo">+ Novo Funcionário</button></div>
+    <p class="suave">Registo completo da equipa: dados pessoais, cargo, salário, habilitações e ligação à conta de acesso ao sistema.</p>
+    <div class="filtros">
+      <input type="search" id="pesquisa" placeholder="🔍 Pesquisar por nome ou cargo...">
+      <select id="filtro"><option value="">Todos os estados</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select>
+    </div>
+    <div id="lista"><p class="suave">A carregar...</p></div>
+  </section>
+
+  <section class="painel" id="vista-painel" hidden>
+    <div class="cab"><strong id="vista-titulo"></strong><button class="btn2 nao-imprimir" id="vista-fechar">✕ Fechar</button></div>
+    <div id="vista-corpo"></div>
+    <div class="nao-imprimir" style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" id="vista-imprimir">🖨️ Imprimir</button><button class="btn2" id="vista-editar">✏️ Editar</button>
+    </div>
+  </section>
+
+  <section class="painel" id="form-painel" hidden>
+    <div class="cab"><strong id="form-titulo">🧑‍💼 Novo Funcionário</strong><button class="btn2" id="form-fechar">✕ Fechar</button></div>
+    <form id="form">
+      <input type="hidden" id="ficha-id">
+      <div class="sec s1"><h4>👤 Identificação</h4>
+        <label>Nome completo *</label><input id="nome" required placeholder="Ex.: Maria José dos Santos">
+        <div class="duas"><div><label>Cargo / Função *</label><input id="cargo" required placeholder="Ex.: Auxiliar de Farmácia"></div>
+        <div><label>Estado</label><select id="estado"><option value="activo">🟢 Activo</option><option value="inactivo">⚪ Inactivo</option></select></div></div></div>
+      <div class="sec s2"><h4>📋 Dados pessoais & contacto</h4>
+        <div class="duas"><div><label>Nº de BI</label><input id="bi" placeholder="Opcional"></div><div><label>Telefone</label><input id="telefone" type="tel" placeholder="9XX XXX XXX"></div></div>
+        <div class="duas"><div><label>E-mail</label><input id="email" type="email"></div><div><label>Data de nascimento</label><input id="nascimento" type="date"></div></div>
+        <label>Endereço</label><input id="morada" placeholder="Bairro, município"></div>
+      <div class="sec s3"><h4>💼 Dados de emprego</h4>
+        <div class="duas"><div><label>Data de admissão</label><input id="admissao" type="date"></div><div><label>Salário mensal (Kz)</label><input id="salario" type="number" min="0" step="0.01"></div></div>
+        <label>Conta de acesso ao sistema</label><select id="login"><option value="">Nenhuma (apenas registo de RH)</option></select>
+        <label>Habilitações literárias</label>
+        <select id="habil"><option value="">Não especificado</option><option>Ensino primário</option><option>1º ciclo (7ª a 9ª classe)</option><option>Ensino secundário (10ª a 12ª classe)</option><option>Ensino médio técnico</option><option>Bacharelato</option><option>Licenciatura</option><option>Mestrado</option><option>Doutoramento</option></select></div>
+      <div class="sec s4"><h4>📈 Histórico salarial</h4>
+        <div id="hist-lista"></div>
+        <div id="hist-novo" class="duas" style="margin-top:8px">
+          <div><label>Data</label><input id="h-data" type="date"></div><div><label>Novo salário (Kz)</label><input id="h-sal" type="number" min="0" step="0.01"></div>
+        </div>
+        <label>Motivo</label><input id="h-motivo" placeholder="Ex.: Aumento anual">
+        <button type="button" class="btn" id="h-add" style="margin-top:8px">+ Adicionar ao histórico</button>
+        <p class="suave" id="h-aviso">Guarde a ficha primeiro para registar alterações salariais.</p></div>
+      <div class="sec s5"><h4>🏦 Dados bancários e contrato</h4>
+        <div class="duas"><div><label>IBAN / conta bancária</label><input id="iban" placeholder="AO06..."></div><div><label>Nº de dependentes</label><input id="dep" type="number" min="0" step="1" value="0"></div></div>
+        <div class="duas"><div><label>Tipo de contrato</label><select id="contrato"><option value="">—</option><option>Prazo indeterminado</option><option>Termo certo</option><option>Termo incerto</option><option>Estágio</option><option>Prestação de serviços</option></select></div>
+        <div><label>Fim de contrato (vazio = indefinido)</label><input id="fim" type="date"></div></div></div>
+      <div class="sec s2"><h4>📎 Documentos</h4>
+        <p class="suave" id="docs-aviso">Guarde a ficha primeiro para anexar documentos.</p>
+        <div id="docs-corpo" hidden></div>
+        <p class="suave">JPG, PNG, WebP ou PDF, até 5 MB. Ficam numa pasta privada, visível só ao Gerente.</p></div>
+      <div class="sec s5"><h4>📝 Notas</h4><textarea id="notas" rows="3" placeholder="Observações adicionais"></textarea></div>
+      <button class="principal" id="guardar">Guardar funcionário</button>
+    </form>
+    <div class="msg" id="msg"></div>
+  </section>
+</main>
+<div class="aviso-acesso" id="sem-acesso" hidden><p>Esta área é só para o Gerente da farmácia.</p><a href="app.html">Voltar às vendas</a></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const sb = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  let fichas = [], logins = {}, farmaciaId = null, actual = null;
+
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  const dataPt = (d) => d ? d.split("-").reverse().join("/") : "—";
+  const kz = (v) => v == null ? "—" : new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(v);
+  const iniciais = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+
+  async function iniciar() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(sb);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "pessoas", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await sb.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    if (ctx.papel !== "gerente") { $("sem-acesso").hidden = false; return; }
+    farmaciaId = ctx.farmacia.id; $("conteudo").hidden = false;
+    const { data } = await sb.from("funcionarios_da_farmacia").select("user_id, email");
+    (data || []).forEach((f) => { logins[f.user_id] = f.email; const o = document.createElement("option"); o.value = f.user_id; o.textContent = f.email; $("login").appendChild(o); });
+    await carregar();
+  }
+
+  async function carregar() {
+    const { data, error } = await sb.from("fichas_funcionario").select("*").order("nome_completo");
+    if (error) { console.error(error); $("lista").innerHTML = '<p class="msg erro">Não foi possível carregar as fichas.</p>'; return; }
+    fichas = data; await carregarFotos(); desenhar();
+  }
+
+  function desenhar() {
+    const t = $("pesquisa").value.trim().toLowerCase(), e = $("filtro").value;
+    const l = fichas.filter((f) => (!e || f.estado === e) && (f.nome_completo + " " + (f.cargo || "")).toLowerCase().includes(t));
+    $("lista").innerHTML = l.length ? l.map((f) => `
+      <div class="item"><div class="av">${urlsFoto[f.id] ? `<img src="${esc(urlsFoto[f.id])}" alt="">` : esc(iniciais(f.nome_completo))}</div>
+        <div class="info"><strong>${esc(f.nome_completo)}</strong><span class="tag ${f.estado === "activo" ? "" : "inactivo"}">${f.estado === "activo" ? "🟢 Activo" : "⚪ Inactivo"}</span>
+          <small>${esc(f.cargo || "Sem cargo")} · Admissão: ${dataPt(f.data_admissao)}</small>
+          <small>${esc(f.email || f.telefone || "Sem contacto")}</small>
+          <small>${f.user_id ? "🔑 Com acesso ao sistema" : "📋 Só registo de RH"}</small></div>
+        <div class="acc"><button class="btn2" data-ver="${esc(f.id)}">👁 Ficha</button><button class="btn2" data-edit="${esc(f.id)}">✏️ Editar</button></div></div>`).join("")
+      : '<p class="suave">Nenhum funcionário encontrado.</p>';
+  }
+  $("pesquisa").addEventListener("input", desenhar); $("filtro").addEventListener("change", desenhar);
+  $("lista").addEventListener("click", (e) => {
+    const v = e.target.closest("[data-ver]"), d = e.target.closest("[data-edit]");
+    if (v) ver(v.dataset.ver); if (d) editar(d.dataset.edit);
+  });
+
+  async function historico(id) {
+    const { data } = await sb.from("historico_salarial").select("data_alteracao, salario, motivo").eq("ficha_id", id).order("data_alteracao", { ascending: false });
+    return data || [];
+  }
+  const linhaHist = (h) => `<div class="hist"><span>${dataPt(h.data_alteracao)} · ${esc(h.motivo || "—")}</span><strong>${kz(h.salario)}</strong></div>`;
+
+  async function ver(id) {
+    actual = fichas.find((x) => x.id === id); if (!actual) return;
+    const f = actual, h = await historico(id), dc = await docsDe(id);
+    const L = (a, b) => `<div class="linha"><span>${a}</span><span>${b}</span></div>`;
+    $("vista-titulo").textContent = "👁 Ficha de " + f.nome_completo;
+    $("vista-corpo").innerHTML = L("Cargo", esc(f.cargo || "—")) + L("Estado", esc(f.estado)) + L("Nº de BI", esc(f.bilhete_identidade || "—"))
+      + L("Nascimento", dataPt(f.data_nascimento)) + L("Telefone", esc(f.telefone || "—")) + L("E-mail", esc(f.email || "—")) + L("Endereço", esc(f.morada || "—"))
+      + L("Admissão", dataPt(f.data_admissao)) + L("Salário", kz(f.salario_base)) + L("Habilitações", esc(f.habilitacoes || "—"))
+      + L("Contrato", esc(f.tipo_contrato || "—")) + L("Fim de contrato", f.data_fim_contrato ? dataPt(f.data_fim_contrato) : "Indefinido")
+      + L("IBAN", esc(f.iban || "—")) + L("Dependentes", f.dependentes ?? 0) + L("Conta de acesso", esc(logins[f.user_id] || "Nenhuma")) + L("Notas", esc(f.observacoes || "—"))
+      + `<h4 style="margin:14px 0 4px">📈 Histórico salarial</h4>` + (h.length ? h.map(linhaHist).join("") : '<p class="suave">Sem registos.</p>')
+      + `<h4 style="margin:14px 0 4px">📎 Documentos</h4>` + (dc.length ? dc.map((d) => linhaDoc(d, false)).join("") : '<p class="suave">Sem documentos.</p>');
+    $("lista-painel").hidden = true; $("form-painel").hidden = true; $("vista-painel").hidden = false; scrollTo(0, 0);
+  }
+
+  function abrirForm(f) {
+    $("form").reset(); $("msg").textContent = ""; $("ficha-id").value = f ? f.id : "";
+    const set = (id, v) => { $(id).value = v ?? ""; };
+    if (f) {
+      set("nome", f.nome_completo); set("cargo", f.cargo); set("estado", f.estado); set("bi", f.bilhete_identidade); set("telefone", f.telefone);
+      set("email", f.email); set("nascimento", f.data_nascimento); set("morada", f.morada); set("admissao", f.data_admissao); set("salario", f.salario_base);
+      set("login", f.user_id); set("habil", f.habilitacoes); set("iban", f.iban); set("dep", f.dependentes ?? 0); set("contrato", f.tipo_contrato);
+      set("fim", f.data_fim_contrato); set("notas", f.observacoes);
+    }
+    $("form-titulo").textContent = f ? "✏️ Editar " + f.nome_completo : "🧑‍💼 Novo Funcionário";
+    $("guardar").textContent = f ? "Guardar alterações" : "Guardar funcionário";
+    ["hist-novo", "h-add"].forEach((i) => { $(i).hidden = !f; }); $("h-motivo").hidden = !f; $("h-motivo").previousElementSibling.hidden = !f; $("h-aviso").hidden = !!f;
+    $("hist-lista").innerHTML = ""; $("docs-aviso").hidden = !!f; $("docs-corpo").hidden = !f; if (f) carregarDocs(f.id);
+    if (f) historico(f.id).then((h) => { $("hist-lista").innerHTML = h.length ? h.map(linhaHist).join("") : '<p class="suave">Sem registos ainda.</p>'; });
+    $("lista-painel").hidden = true; $("vista-painel").hidden = true; $("form-painel").hidden = false; scrollTo(0, 0);
+  }
+  function editar(id) { abrirForm(fichas.find((x) => x.id === id)); }
+  function fechar() { ["form-painel", "vista-painel"].forEach((i) => { $(i).hidden = true; }); $("lista-painel").hidden = false; }
+  $("novo").addEventListener("click", () => abrirForm(null));
+  $("form-fechar").addEventListener("click", fechar); $("vista-fechar").addEventListener("click", fechar);
+  $("vista-imprimir").addEventListener("click", () => window.print());
+  $("vista-editar").addEventListener("click", () => actual && abrirForm(actual));
+
+  $("h-add").addEventListener("click", async () => {
+    const id = $("ficha-id").value, data = $("h-data").value, sal = $("h-sal").value, msg = $("msg");
+    msg.className = "msg"; if (!id || !data || sal === "") { msg.textContent = "Indique a data e o novo salário."; msg.classList.add("erro"); return; }
+    const { error } = await sb.from("historico_salarial").insert({ ficha_id: id, farmacia_id: farmaciaId, data_alteracao: data, salario: Number(sal), motivo: $("h-motivo").value.trim() || null });
+    if (error) { console.error(error); msg.textContent = "Não foi possível registar: " + error.message; msg.classList.add("erro"); return; }
+    $("h-data").value = $("h-sal").value = $("h-motivo").value = ""; msg.textContent = "Registado no histórico."; msg.classList.add("ok");
+    $("hist-lista").innerHTML = (await historico(id)).map(linhaHist).join("");
+  });
+
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault(); const msg = $("msg"); msg.className = "msg"; msg.textContent = "";
+    const v = (i) => $(i).value.trim() || null;
+    const dados = { nome_completo: $("nome").value.trim(), cargo: v("cargo"), estado: $("estado").value, bilhete_identidade: v("bi"), telefone: v("telefone"),
+      email: v("email"), data_nascimento: v("nascimento"), morada: v("morada"), data_admissao: v("admissao"),
+      salario_base: $("salario").value === "" ? null : Number($("salario").value), user_id: v("login"), habilitacoes: v("habil"),
+      iban: v("iban"), dependentes: Number($("dep").value) || 0, tipo_contrato: v("contrato"), data_fim_contrato: v("fim"), observacoes: v("notas") };
+    const id = $("ficha-id").value;
+    const r = id ? await sb.from("fichas_funcionario").update(dados).eq("id", id) : await sb.from("fichas_funcionario").insert({ ...dados, farmacia_id: farmaciaId }).select("id").single();
+    if (r.error) { console.error(r.error); msg.textContent = "Não foi possível guardar: " + r.error.message; msg.classList.add("erro"); return; }
+    await carregar();
+    if (id) { fechar(); return; }
+    abrirForm(fichas.find((x) => x.id === r.data.id));
+    $("msg").textContent = "Ficha criada. Já pode anexar documentos."; $("msg").classList.add("ok");
+  });
+  // ---------- Documentos (BI, foto, certificado, contrato, atestado) ----------
+  const BUCKET = "pessoas-docs", MAX = 5 * 1024 * 1024;
+  const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+  const TIPOS = [
+    { id: "foto", nome: "📷 Foto" }, { id: "bi", nome: "🪪 Bilhete de Identidade (frente e verso)" },
+    { id: "certificado", nome: "🎓 Certificado de habilitações" }, { id: "contrato", nome: "📋 Contrato de trabalho" },
+    { id: "atestado", nome: "🏥 Atestado médico" }, { id: "outro", nome: "📄 Outros" },
+  ];
+  const NOME_TIPO = Object.fromEntries(TIPOS.map((t) => [t.id, t.nome]));
+  let urlsFoto = {};
+
+  async function carregarFotos() {
+    urlsFoto = {};
+    const { data } = await sb.from("documentos_funcionario").select("ficha_id, caminho").eq("tipo", "foto");
+    if (!data || !data.length) return;
+    const { data: urls } = await sb.storage.from(BUCKET).createSignedUrls(data.map((d) => d.caminho), 3600);
+    (urls || []).forEach((u) => { const d = data.find((x) => x.caminho === u.path); if (d && u.signedUrl) urlsFoto[d.ficha_id] = u.signedUrl; });
+  }
+  async function docsDe(id) {
+    const { data } = await sb.from("documentos_funcionario").select("id, tipo, nome_ficheiro, caminho").eq("ficha_id", id).order("criado_em");
+    return data || [];
+  }
+  const linhaDoc = (d, apagar) => `<div class="doc"><span>${NOME_TIPO[d.tipo] || d.tipo}: ${esc(d.nome_ficheiro)}</span><span>
+    <button type="button" class="btn2" data-abrir="${esc(d.caminho)}">Abrir</button>${apagar ? ` <button type="button" class="btn2" data-apagar="${esc(d.id)}" data-caminho="${esc(d.caminho)}">🗑️</button>` : ""}</span></div>`;
+
+  async function carregarDocs(id) {
+    const docs = await docsDe(id);
+    $("docs-corpo").innerHTML = TIPOS.map((t) => {
+      const l = docs.filter((d) => d.tipo === t.id);
+      return `<div style="margin-bottom:12px"><strong style="font-size:.88rem">${t.nome}</strong>${l.map((d) => linhaDoc(d, true)).join("")}
+        <label class="btn2" style="display:inline-block;margin:6px 0 0;cursor:pointer">📁 ${t.id === "foto" && l.length ? "Substituir" : "Carregar"}
+        <input type="file" hidden data-tipo="${t.id}" accept="image/jpeg,image/png,image/webp${t.id === "foto" ? "" : ",application/pdf"}"></label></div>`;
+    }).join("");
+  }
+
+  async function apagarDoc(docId, caminho) {
+    await sb.storage.from(BUCKET).remove([caminho]);
+    await sb.from("documentos_funcionario").delete().eq("id", docId);
+  }
+
+  $("docs-corpo").addEventListener("change", async (e) => {
+    const inp = e.target.closest("input[type=file]"); if (!inp || !inp.files[0]) return;
+    const file = inp.files[0], tipo = inp.dataset.tipo, id = $("ficha-id").value, msg = $("msg");
+    msg.className = "msg"; inp.value = "";
+    if (!EXT[file.type]) { msg.textContent = "Só são aceites JPG, PNG, WebP ou PDF."; msg.classList.add("erro"); return; }
+    if (file.size > MAX) { msg.textContent = "O ficheiro tem mais de 5 MB."; msg.classList.add("erro"); return; }
+    msg.textContent = "A carregar...";
+    const caminho = `${farmaciaId}/${id}/${tipo}-${crypto.randomUUID()}.${EXT[file.type]}`;
+    const up = await sb.storage.from(BUCKET).upload(caminho, file, { contentType: file.type });
+    if (up.error) { console.error(up.error); msg.textContent = "Não foi possível carregar: " + up.error.message; msg.classList.add("erro"); return; }
+    const antigas = tipo === "foto" ? (await docsDe(id)).filter((d) => d.tipo === "foto") : [];
+    const ins = await sb.from("documentos_funcionario").insert({ ficha_id: id, farmacia_id: farmaciaId, tipo, nome_ficheiro: file.name.slice(0, 120), caminho });
+    if (ins.error) { console.error(ins.error); await sb.storage.from(BUCKET).remove([caminho]); msg.textContent = "Não foi possível registar: " + ins.error.message; msg.classList.add("erro"); return; }
+    for (const d of antigas) await apagarDoc(d.id, d.caminho);
+    msg.textContent = "Documento carregado."; msg.classList.add("ok");
+    await carregarDocs(id);
+    if (tipo === "foto") { await carregarFotos(); desenhar(); }
+  });
+
+  document.addEventListener("click", async (e) => {
+    const a = e.target.closest("[data-abrir]"), x = e.target.closest("[data-apagar]");
+    if (a) {
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(a.dataset.abrir, 120);
+      if (error || !data) { alert("Não foi possível abrir o ficheiro."); return; }
+      window.open(data.signedUrl, "_blank") || (location.href = data.signedUrl);
+    }
+    if (x && confirm("Apagar este documento?")) {
+      await apagarDoc(x.dataset.apagar, x.dataset.caminho);
+      const id = $("ficha-id").value; await carregarDocs(id); await carregarFotos(); desenhar();
+    }
+  });
+
+  iniciar();
+</script>
+</body>
+</html>

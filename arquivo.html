@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Arquivo</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 16px; }
+  .cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .suave { color: var(--suave); font-size: .85rem; }
+  .btn { background: var(--cor-primaria); color: #fff; border: none; border-radius: 999px; padding: 8px 14px; font-weight: 600; cursor: pointer; font-size: .85rem; }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  .filtros { display: flex; gap: 8px; margin: 12px 0; } .filtros input { flex: 1; } .filtros select { width: 42%; }
+  input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; font-family: inherit; }
+  label { display: block; font-size: .82rem; color: var(--suave); margin: 10px 0 4px; font-weight: 600; }
+  label.chk { display: flex; gap: 8px; align-items: center; color: inherit; font-weight: 400; }
+  label.chk input { width: auto; }
+  .item { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 1px 8px rgba(0,0,0,.07); }
+  .ico { font-size: 1.6rem; flex: none; } .info { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .info small { display: block; color: var(--suave); font-size: .78rem; margin-top: 2px; }
+  .acc { display: flex; flex-direction: column; gap: 6px; }
+  .tag { font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: #e3ecf8; color: #1b4f8a; margin-left: 4px; }
+  .tag.eq { background: #e3f6e6; color: #1b7a2e; }
+  .principal { width: 100%; margin-top: 12px; padding: 12px; background: var(--cor-primaria); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  .msg { font-size: .9rem; margin-top: 8px; min-height: 1.2em; } .msg.ok { color: #1b7a2e; } .msg.erro { color: #c62828; }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">📁 Arquivo de Documentos</h2>
+
+  <section class="painel" id="form-painel" hidden>
+    <div class="cab"><strong>➕ Novo documento</strong><button class="btn2" id="form-fechar">✕ Fechar</button></div>
+    <form id="form">
+      <label>Título *</label><input id="titulo-doc" required maxlength="120" placeholder="Ex.: Regulamento Interno 2026">
+      <label>Categoria *</label><select id="categoria" required></select>
+      <label>Descrição (opcional)</label><textarea id="descricao" rows="2" maxlength="300"></textarea>
+      <label>Ficheiro * (PDF, Word, JPG, PNG ou WebP, até 10 MB)</label>
+      <input type="file" id="ficheiro" required accept="application/pdf,.doc,.docx,image/jpeg,image/png,image/webp">
+      <label class="chk"><input type="checkbox" id="partilhar"> Partilhar com a equipa (todos os funcionários podem ver)</label>
+      <button class="principal" id="guardar">Guardar documento</button>
+    </form>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <section class="painel">
+    <div class="cab"><strong>Documentos</strong><button class="btn" id="novo" hidden>+ Novo documento</button></div>
+    <p class="suave" id="ajuda"></p>
+    <div class="filtros"><input type="search" id="pesquisa" placeholder="🔍 Pesquisar..."><select id="filtro"><option value="">Todas as categorias</option></select></div>
+    <div id="lista"><p class="suave">A carregar...</p></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const sb = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  const BUCKET = "empresa-docs", MAX = 10 * 1024 * 1024;
+  const CATEGORIAS = ["Contratos", "Regulamento interno", "Licenças e alvarás", "Políticas e procedimentos", "Actas e comunicados", "Outros"];
+  const EXT = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx" };
+  let docs = [], farmaciaId = null, gerente = false;
+
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  const dataPt = (iso) => new Date(iso).toLocaleDateString("pt-AO");
+  const icone = (n) => /\.pdf$/i.test(n || "") ? "📕" : /\.docx?$/i.test(n || "") ? "📘" : "🖼️";
+
+  async function iniciar() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(sb);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "arquivo", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await sb.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    farmaciaId = ctx.farmacia.id; gerente = ctx.papel === "gerente";
+    CATEGORIAS.forEach((c) => { $("categoria").add(new Option(c, c)); $("filtro").add(new Option(c, c)); });
+    $("novo").hidden = !gerente;
+    $("ajuda").textContent = gerente ? "Contratos, regulamento interno, licenças e outros. Só você vê tudo; a equipa vê apenas o que marcar como partilhado."
+                                     : "Documentos partilhados pelo Gerente com a equipa.";
+    $("conteudo").hidden = false;
+    await carregar();
+  }
+
+  async function carregar() {
+    const { data, error } = await sb.from("documentos_empresa").select("*").order("criado_em", { ascending: false });
+    if (error) { console.error(error); $("lista").innerHTML = '<p class="msg erro">Não foi possível carregar os documentos.</p>'; return; }
+    docs = data; desenhar();
+  }
+
+  function desenhar() {
+    const t = $("pesquisa").value.trim().toLowerCase(), c = $("filtro").value;
+    const l = docs.filter((d) => (!c || d.categoria === c) && (d.titulo + " " + (d.descricao || "")).toLowerCase().includes(t));
+    $("lista").innerHTML = l.length ? l.map((d) => `
+      <div class="item"><div class="ico">${icone(d.nome_ficheiro)}</div>
+        <div class="info"><strong>${esc(d.titulo)}</strong><span class="tag">${esc(d.categoria)}</span>${d.visivel_equipa ? '<span class="tag eq">👥 Partilhado</span>' : ""}
+          ${d.descricao ? `<small>${esc(d.descricao)}</small>` : ""}<small>${esc(d.nome_ficheiro)} · ${dataPt(d.criado_em)}</small></div>
+        <div class="acc"><button class="btn2" data-abrir="${esc(d.caminho)}">👁 Abrir</button>
+          ${gerente ? `<button class="btn2" data-partilha="${esc(d.id)}">${d.visivel_equipa ? "🔒 Reservar" : "👥 Partilhar"}</button><button class="btn2" data-apagar="${esc(d.id)}">🗑️</button>` : ""}</div></div>`).join("")
+      : '<p class="suave">Nenhum documento.</p>';
+  }
+  $("pesquisa").addEventListener("input", desenhar); $("filtro").addEventListener("change", desenhar);
+  $("novo").addEventListener("click", () => { $("form-painel").hidden = false; $("msg").textContent = ""; scrollTo(0, 0); });
+  $("form-fechar").addEventListener("click", () => { $("form-painel").hidden = true; });
+
+  $("lista").addEventListener("click", async (e) => {
+    const a = e.target.closest("[data-abrir]"), p = e.target.closest("[data-partilha]"), x = e.target.closest("[data-apagar]");
+    if (a) {
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(a.dataset.abrir, 120);
+      if (error || !data) { alert("Não foi possível abrir o ficheiro."); return; }
+      window.open(data.signedUrl, "_blank") || (location.href = data.signedUrl);
+    }
+    if (p) {
+      const d = docs.find((z) => z.id === p.dataset.partilha); if (!d) return;
+      const { error } = await sb.from("documentos_empresa").update({ visivel_equipa: !d.visivel_equipa }).eq("id", d.id);
+      if (error) { alert("Não foi possível alterar: " + error.message); return; }
+      await carregar();
+    }
+    if (x) {
+      const d = docs.find((z) => z.id === x.dataset.apagar);
+      if (!d || !confirm(`Apagar "${d.titulo}"? Não pode ser recuperado.`)) return;
+      await sb.storage.from(BUCKET).remove([d.caminho]);
+      const { error } = await sb.from("documentos_empresa").delete().eq("id", d.id);
+      if (error) { alert("Não foi possível apagar: " + error.message); return; }
+      await carregar();
+    }
+  });
+
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault(); const msg = $("msg"), botao = $("guardar"); msg.className = "msg"; msg.textContent = "";
+    const file = $("ficheiro").files[0];
+    if (!file || !EXT[file.type]) { msg.textContent = "Formato não aceite. Use PDF, Word, JPG, PNG ou WebP."; msg.classList.add("erro"); return; }
+    if (file.size > MAX) { msg.textContent = "O ficheiro tem mais de 10 MB."; msg.classList.add("erro"); return; }
+    botao.disabled = true; msg.textContent = "A carregar...";
+    const caminho = `${farmaciaId}/${crypto.randomUUID()}.${EXT[file.type]}`;
+    const up = await sb.storage.from(BUCKET).upload(caminho, file, { contentType: file.type });
+    if (up.error) { console.error(up.error); msg.textContent = "Não foi possível carregar: " + up.error.message; msg.classList.add("erro"); botao.disabled = false; return; }
+    const ins = await sb.from("documentos_empresa").insert({
+      farmacia_id: farmaciaId, categoria: $("categoria").value, titulo: $("titulo-doc").value.trim(),
+      descricao: $("descricao").value.trim() || null, nome_ficheiro: file.name.slice(0, 120), caminho, visivel_equipa: $("partilhar").checked });
+    botao.disabled = false;
+    if (ins.error) { console.error(ins.error); await sb.storage.from(BUCKET).remove([caminho]); msg.textContent = "Não foi possível registar: " + ins.error.message; msg.classList.add("erro"); return; }
+    $("form").reset(); msg.textContent = "Documento guardado."; msg.classList.add("ok");
+    await carregar();
+  });
+  iniciar();
+</script>
+</body>
+</html>

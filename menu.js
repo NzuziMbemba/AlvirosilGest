@@ -6,6 +6,9 @@
     { id: "vendas", ico: "🛒", nome: "Caixa / PDV", url: "app.html", papeis: ["gerente", "farmaceutico", "caixa"] },
     { id: "produtos", ico: "📦", nome: "Produtos", url: "produtos.html", papeis: ["gerente", "farmaceutico"] },
     { id: "funcionarios", ico: "🧑‍💼", nome: "Funcionários", url: "funcionarios.html", papeis: ["gerente"] },
+    { id: "pessoas", ico: "👥", nome: "Gestão de Pessoas", url: "pessoas.html", papeis: ["gerente"] },
+    { id: "salarios", ico: "💰", nome: "Salários", url: "salarios.html", papeis: ["gerente"] },
+    { id: "arquivo", ico: "📁", nome: "Arquivo", url: "arquivo.html", papeis: ["gerente", "farmaceutico", "caixa"] },
     { id: "documentos", ico: "📄", nome: "Documentos RH", url: "documentos-rh.html", papeis: ["gerente"] },
     { id: "configuracoes", ico: "⚙️", nome: "Configurações", url: "configuracoes.html", papeis: ["gerente"] },
   ];
@@ -23,6 +26,12 @@
     .mb-abas a { padding:14px 14px 11px; text-decoration:none; color:var(--suave); font-size:.88rem; border-bottom:3px solid transparent; }
     .mb-abas a.activo { color:var(--cor-primaria); font-weight:700; border-bottom-color:var(--cor-primaria); }
     html[data-tema="dark"] .mb-abas a.activo { color:#7fd68a; border-bottom-color:#7fd68a; }
+    html[data-tema="dark"] .painel { background:var(--cartao); color:var(--texto); }
+    html[data-tema="dark"] input, html[data-tema="dark"] select, html[data-tema="dark"] textarea { background:var(--fundo); color:var(--texto); border-color:var(--borda); }
+    html[data-tema="dark"] th, html[data-tema="dark"] td { border-bottom-color:var(--borda); }
+    html[data-tema="dark"] th, html[data-tema="dark"] label { color:var(--suave); }
+    html[data-tema="dark"] button.secundario { background:transparent; color:var(--texto); }
+    html[data-tema="dark"] #folha, html[data-tema="dark"] #editor-corpo, html[data-tema="dark"] .barra { background:#fff; color:#222; }
   `;
 
   function guardar(chave, valor) { try { localStorage.setItem(chave, valor); } catch (_) {} }

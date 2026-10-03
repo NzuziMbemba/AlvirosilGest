@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Configurações</title>
+<style>
+  :root { --cor-primaria: #1b5e20; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f4f6f4;
+    color: #222;
+  }
+  header {
+    background: var(--cor-primaria);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header .marca { display: flex; align-items: center; gap: 8px; }
+  header img { max-height: 32px; }
+  header nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 16px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  .painel {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+  }
+  .painel h2 { margin-top: 0; font-size: 1.05rem; }
+  .painel p.explicacao { font-size: 0.85rem; color: #777; margin-top: -8px; }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  input[type="color"] { padding: 4px; height: 44px; }
+  button.principal {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--cor-primaria);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mensagem { font-size: 0.9rem; margin-top: 10px; min-height: 1.2em; }
+  .mensagem.sucesso { color: #1b5e20; }
+  .mensagem.erro { color: #c62828; }
+  .aviso-acesso { max-width: 480px; margin: 60px auto; text-align: center; color: #555; }
+</style>
+</head>
+<body>
+
+<div id="topo" class="nao-imprimir"></div>
+
+<main id="conteudo-principal" style="display:none">
+
+  <section class="painel">
+    <h2>Marca da farmácia</h2>
+    <p class="explicacao">Aparece no cabeçalho e nas facturas.</p>
+    <form id="form-marca">
+      <label for="nome-farmacia">Nome</label>
+      <input type="text" id="nome-farmacia" required>
+
+      <label for="nif-farmacia">NIF</label>
+      <input type="text" id="nif-farmacia">
+
+      <label for="logo-url">URL do logótipo (opcional)</label>
+      <input type="url" id="logo-url" placeholder="https://...">
+
+      <label for="cor-primaria">Cor principal</label>
+      <input type="color" id="cor-primaria">
+
+      <button type="submit" class="principal">Guardar marca</button>
+    </form>
+    <div class="mensagem" id="mensagem-marca"></div>
+  </section>
+
+  <section class="painel">
+    <h2>Facturação Vendus</h2>
+    <p class="explicacao">
+      API KEY obtida na tua conta Vendus, em
+      <em>Configuração &gt; Utilizadores &gt; Opções &gt; API</em>.
+      Sem isto, as vendas ficam registadas mas as facturas fiscais entram
+      em contingência até configurares a chave.
+    </p>
+    <form id="form-vendus">
+      <label for="vendus-api-key">API KEY do Vendus</label>
+      <input type="password" id="vendus-api-key" autocomplete="off" placeholder="•••••••••••••••">
+
+      <button type="submit" class="principal">Guardar API KEY</button>
+    </form>
+    <div class="mensagem" id="mensagem-vendus"></div>
+  </section>
+
+</main>
+
+<div class="aviso-acesso" id="aviso-sem-acesso" style="display:none">
+  <p>Esta área é só para o Gerente da farmácia.</p>
+  <a href="app.html">Voltar às vendas</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const SUPABASE_URL = "https://qillinntbhoecurnuheq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh";
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let farmaciaAtual = null;
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = "login.html"; return; }
+
+    const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!contexto) { window.location.href = "login.html"; return; }
+
+    const _u = (await supabaseClient.auth.getUser()).data.user;
+    MenuAlviro.montar({ papel: contexto.papel, activo: "configuracoes", nome: _u?.user_metadata?.nome || (_u?.email || "").split("@")[0],
+      aoSair: async () => { await supabaseClient.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} window.location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(contexto.farmacia);
+
+    if (contexto.papel !== "gerente") {
+      document.getElementById("aviso-sem-acesso").style.display = "block";
+      return;
+    }
+
+    farmaciaAtual = contexto.farmacia;
+    document.getElementById("conteudo-principal").style.display = "block";
+
+    document.getElementById("nome-farmacia").value = farmaciaAtual.nome || "";
+    document.getElementById("nif-farmacia").value = farmaciaAtual.nif || "";
+    document.getElementById("logo-url").value = farmaciaAtual.logo_url || "";
+    document.getElementById("cor-primaria").value = farmaciaAtual.cor_primaria || "#1b5e20";
+  }
+
+  document.getElementById("form-marca").addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const mensagem = document.getElementById("mensagem-marca");
+    mensagem.textContent = "";
+    mensagem.className = "mensagem";
+
+    const dados = {
+      nome: document.getElementById("nome-farmacia").value.trim(),
+      nif: document.getElementById("nif-farmacia").value.trim() || null,
+      logo_url: document.getElementById("logo-url").value.trim() || null,
+      cor_primaria: document.getElementById("cor-primaria").value,
+    };
+
+    const { error } = await supabaseClient.from("farmacias").update(dados).eq("id", farmaciaAtual.id);
+
+    if (error) {
+      mensagem.textContent = "Não foi possível guardar. Confirma que és o Gerente desta farmácia.";
+      mensagem.classList.add("erro");
+      console.error(error);
+      return;
+    }
+
+    mensagem.textContent = "Marca actualizada.";
+    mensagem.classList.add("sucesso");
+
+    AuthFarmacia.limparContexto();
+    AuthFarmacia.aplicarMarca({ ...farmaciaAtual, ...dados });
+  });
+
+  document.getElementById("form-vendus").addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    const mensagem = document.getElementById("mensagem-vendus");
+    mensagem.textContent = "";
+    mensagem.className = "mensagem";
+
+    const apiKey = document.getElementById("vendus-api-key").value.trim();
+    if (!apiKey) {
+      mensagem.textContent = "Introduz a API KEY antes de guardar.";
+      mensagem.classList.add("erro");
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("farmacias")
+      .update({ vendus_api_key: apiKey })
+      .eq("id", farmaciaAtual.id);
+
+    if (error) {
+      mensagem.textContent = "Não foi possível guardar a API KEY.";
+      mensagem.classList.add("erro");
+      console.error(error);
+      return;
+    }
+
+    mensagem.textContent = "API KEY guardada. As próximas vendas já emitem factura.";
+    mensagem.classList.add("sucesso");
+    document.getElementById("vendus-api-key").value = "";
+  });
+
+  iniciar();
+</script>
+
+</body>
+</html>

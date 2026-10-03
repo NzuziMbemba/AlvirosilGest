@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Salários</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 16px; }
+  .suave { color: var(--suave); font-size: .83rem; }
+  .aviso { background: rgba(239,143,0,.14); border-left: 4px solid #ef8f00; border-radius: 8px; padding: 10px 12px; font-size: .82rem; margin-bottom: 14px; }
+  .btn { background: var(--cor-primaria); color: #fff; border: none; border-radius: 999px; padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: .88rem; }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  .btn3 { background: none; border: 1px solid #c62828; color: #c62828; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  .barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+  .barra > div { flex: 1; min-width: 110px; }
+  input, select { width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; font-family: inherit; }
+  label { display: block; font-size: .75rem; color: var(--suave); margin: 0 0 3px; font-weight: 600; }
+  .card { border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,.08); }
+  .card h4 { margin: 0 0 8px; } .card h4 small { color: var(--suave); font-weight: 400; }
+  .grelha { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .res { margin-top: 10px; font-size: .85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
+  .res span:nth-child(even) { text-align: right; } .alerta { grid-column: 1 / -1; background: rgba(198,40,40,.12); border-left: 4px solid #c62828; border-radius: 6px; padding: 6px 8px; font-size: .8rem; color: #c62828; text-align: left; }
+  .res .alerta { text-align: left; }
+  .liq { font-size: 1.05rem; font-weight: 800; color: #1b7a2e; }
+  html[data-tema="dark"] .liq { color: #7fd68a; }
+  .tot { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+  @media (min-width: 720px) { .tot { grid-template-columns: repeat(3, 1fr); } }
+  .tot div { background: rgba(46,125,50,.10); border-radius: 10px; padding: 10px; } .tot b { display: block; font-size: 1.05rem; margin-top: 2px; }
+  .linha { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--borda); }
+  .msg { font-size: .9rem; margin-top: 8px; min-height: 1.2em; } .msg.ok { color: #1b7a2e; } .msg.erro { color: #c62828; }
+  #recibo { display: none; background: #fff; color: #000; padding: 24px; font-size: 14px; }
+  #recibo table { width: 100%; border-collapse: collapse; margin: 12px 0; } #recibo td, #recibo th { border: 1px solid #999; padding: 6px 8px; text-align: left; }
+  #recibo td.n, #recibo th.n { text-align: right; }
+  @media print {
+    #topo, .nao-imprimir { display: none !important; }
+    body { background: #fff; color: #000; } .painel { box-shadow: none; }
+    body.so-recibo main { display: none; } body.so-recibo #recibo { display: block; }
+  }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">💰 Processamento de Salários</h2>
+  <div class="aviso nao-imprimir">⚠️ Cálculo de apoio com a tabela do IRT de 2026 (Lei n.º 14/25), INSS de 3% (trabalhador) e 8% (entidade empregadora). Antes de pagar e de entregar as guias à AGT e ao INSS, confirme os valores com o seu contabilista.</div>
+
+  <section class="painel nao-imprimir">
+    <div class="barra">
+      <div><label>Mês</label><select id="mes"></select></div>
+      <div><label>Ano</label><select id="ano"></select></div>
+      <button class="btn" id="abrir">Abrir folha</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <section class="painel" id="folha" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <strong id="folha-titulo"></strong><span class="suave" id="folha-estado"></span>
+    </div>
+    <p class="suave nao-imprimir" id="folha-ajuda"></p>
+    <div id="linhas"></div>
+    <div class="tot" id="totais"></div>
+    <div class="nao-imprimir" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn" id="processar" hidden>✅ Processar e guardar</button>
+      <button class="btn2" id="imprimir-resumo" hidden>🖨️ Imprimir resumo</button>
+      <button class="btn3" id="reabrir" hidden>↩️ Anular folha</button>
+    </div>
+  </section>
+</main>
+<div id="recibo"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const sb = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+
+  // ---- Parâmetros fiscais (actualize aqui se a lei mudar) ----
+  const TAXA_INSS_TRAB = 0.03, TAXA_INSS_PAT = 0.08;
+  const SALARIO_MINIMO = 50000; // microempresa (Decreto Presidencial n.º 152/24). Se a empresa deixar de ser micro, passe para 100000.
+  const LIMITE_SUBSIDIOS_ISENTO = 30000; // alimentação + transporte (parte isenta de IRT e INSS)
+  // [de, até, parcela fixa, taxa] — IRT Grupo A 2026, Lei n.º 14/25
+  const IRT = [[0,150000,0,0],[150000,200000,12500,.16],[200000,300000,31250,.18],[300000,500000,49250,.19],[500000,1000000,87250,.20],
+    [1000000,1500000,187250,.21],[1500000,2000000,292250,.22],[2000000,2500000,402250,.23],[2500000,5000000,517250,.24],
+    [5000000,10000000,1117250,.245],[10000000,Infinity,2342250,.25]];
+  const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+  const r2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  const kz = (v) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(v || 0);
+  const num = (v) => Number(v) || 0;
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  let farmacia = null, linhas = [], processada = null, recibos = [];
+
+  function irt(mc) { for (const [de, ate, fixa, taxa] of IRT) if (mc <= ate) return r2(fixa + Math.max(0, mc - de) * taxa); }
+
+  function calcular(l) {
+    const subs = num(l.alim) + num(l.transp), subTrib = Math.max(0, subs - LIMITE_SUBSIDIOS_ISENTO);
+    const bruto = num(l.base) + subs + num(l.outros);
+    const baseInss = num(l.base) + subTrib + num(l.outros);
+    const inss = r2(baseInss * TAXA_INSS_TRAB), mc = Math.max(0, r2(baseInss - inss)), imposto = irt(mc);
+    return { bruto: r2(bruto), inss, mc, irt: imposto, liquido: r2(bruto - inss - imposto - num(l.desc)), patronal: r2(baseInss * TAXA_INSS_PAT) };
+  }
+
+  async function iniciar() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(sb);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "salarios", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await sb.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    if (ctx.papel !== "gerente") { document.body.insertAdjacentHTML("beforeend", '<p style="text-align:center;margin:60px 16px">Esta área é só para o Gerente da farmácia.</p>'); return; }
+    farmacia = ctx.farmacia; $("conteudo").hidden = false;
+    const hoje = new Date();
+    MESES.forEach((m, i) => $("mes").add(new Option(m, i + 1)));
+    for (let a = hoje.getFullYear() - 2; a <= hoje.getFullYear() + 1; a++) $("ano").add(new Option(a, a));
+    $("mes").value = hoje.getMonth() + 1; $("ano").value = hoje.getFullYear();
+  }
+
+  async function abrir() {
+    const msg = $("msg"); msg.className = "msg"; msg.textContent = "A carregar...";
+    const ano = Number($("ano").value), mes = Number($("mes").value);
+    const f = await sb.from("folhas_salario").select("id").eq("ano", ano).eq("mes", mes).maybeSingle();
+    if (f.error) { console.error(f.error); msg.textContent = "Erro: " + f.error.message; msg.classList.add("erro"); return; }
+    processada = f.data; msg.textContent = "";
+    $("folha-titulo").textContent = `${MESES[mes - 1]} de ${ano}`;
+    if (processada) {
+      const r = await sb.from("recibos_salario").select("*").eq("folha_id", processada.id).order("nome");
+      if (r.error) { msg.textContent = "Erro: " + r.error.message; msg.classList.add("erro"); return; }
+      recibos = r.data; desenharProcessada();
+    } else {
+      const r = await sb.from("fichas_funcionario").select("id, nome_completo, cargo, salario_base").eq("estado", "activo").order("nome_completo");
+      if (r.error) { msg.textContent = "Erro: " + r.error.message; msg.classList.add("erro"); return; }
+      linhas = r.data.map((x) => ({ ficha: x.id, nome: x.nome_completo, cargo: x.cargo, base: x.salario_base || 0, alim: 0, transp: 0, outros: 0, desc: 0 }));
+      desenharRascunho();
+    }
+    $("folha").hidden = false;
+  }
+
+  function desenharRascunho() {
+    $("folha-estado").textContent = "📝 Rascunho (ainda não processada)";
+    $("folha-ajuda").textContent = linhas.length ? "Ajuste os valores de cada pessoa. Para faltas, reduza o salário base do mês. Descontos são adiantamentos, empréstimos, etc." : "Não há funcionários activos com ficha. Crie-os em 👥 Gestão de Pessoas.";
+    $("linhas").innerHTML = linhas.map((l, i) => `<div class="card" data-i="${i}"><h4>${esc(l.nome)} <small>${esc(l.cargo || "")}</small></h4>
+      <div class="grelha">${[["base", "Salário base (Kz)"], ["alim", "Subs. alimentação"], ["transp", "Subs. transporte"], ["outros", "Outros abonos (bónus, h. extra)"], ["desc", "Outros descontos"]]
+        .map(([k, t]) => `<div><label>${t}</label><input type="number" min="0" step="0.01" data-k="${k}" value="${l[k]}"></div>`).join("")}</div>
+      <div class="res" id="res-${i}"></div></div>`).join("");
+    linhas.forEach((_, i) => resultado(i)); totais(linhas.map(calcular));
+    ["processar"].forEach((b) => { $(b).hidden = !linhas.length; }); $("imprimir-resumo").hidden = true; $("reabrir").hidden = true;
+  }
+
+  function resultado(i) {
+    const c = calcular(linhas[i]);
+    const abaixo = num(linhas[i].base) < SALARIO_MINIMO;
+    $("res-" + i).innerHTML = (abaixo ? `<div class="alerta">⚠️ Salário base abaixo do mínimo (${kz(SALARIO_MINIMO)}). Se é por faltas, confirme com o contabilista.</div>` : "") + `<span>Bruto</span><span>${kz(c.bruto)}</span><span>INSS (3%)</span><span>− ${kz(c.inss)}</span><span>IRT</span><span>− ${kz(c.irt)}</span>
+      <span class="liq">Líquido</span><span class="liq">${kz(c.liquido)}</span>`;
+  }
+  function totais(cs) {
+    const s = (k) => r2(cs.reduce((a, c) => a + c[k], 0));
+    $("totais").innerHTML = `<div>Total bruto<b>${kz(s("bruto"))}</b></div><div>Total líquido a pagar<b>${kz(s("liquido"))}</b></div><div>IRT a entregar à AGT<b>${kz(s("irt"))}</b></div>
+      <div>INSS trabalhador (3%)<b>${kz(s("inss"))}</b></div><div>INSS entidade (8%)<b>${kz(s("patronal"))}</b></div><div>Custo total da empresa<b>${kz(s("bruto") + s("patronal"))}</b></div>`;
+  }
+
+  $("linhas").addEventListener("input", (e) => {
+    const inp = e.target.closest("input[data-k]"); if (!inp || processada) return;
+    const i = Number(inp.closest(".card").dataset.i); linhas[i][inp.dataset.k] = num(inp.value);
+    resultado(i); totais(linhas.map(calcular));
+  });
+
+  function desenharProcessada() {
+    $("folha-estado").textContent = "✅ Processada";
+    $("folha-ajuda").textContent = "Folha guardada. Para corrigir, anule a folha e processe de novo.";
+    $("linhas").innerHTML = recibos.map((r, i) => `<div class="linha"><div><strong>${esc(r.nome)}</strong><div class="suave">${esc(r.cargo || "")} · Líquido ${kz(r.liquido)}</div></div>
+      <button class="btn2 nao-imprimir" data-recibo="${i}">🖨️ Recibo</button></div>`).join("");
+    totais(recibos.map((r) => ({ bruto: Number(r.bruto), liquido: Number(r.liquido), irt: Number(r.irt), inss: Number(r.inss_trabalhador), patronal: Number(r.inss_patronal) })));
+    $("processar").hidden = true; $("imprimir-resumo").hidden = false; $("reabrir").hidden = false;
+  }
+
+  $("processar").addEventListener("click", async () => {
+    const abaixo = linhas.filter((l) => num(l.base) < SALARIO_MINIMO).length;
+    const aviso = abaixo ? `\n\n⚠️ ${abaixo} pessoa(s) com salário base abaixo de ${kz(SALARIO_MINIMO)}.` : "";
+    if (!confirm(`Processar e guardar a folha de ${$("folha-titulo").textContent}?${aviso}`)) return;
+    const msg = $("msg"); msg.className = "msg";
+    const f = await sb.from("folhas_salario").insert({ farmacia_id: farmacia.id, ano: Number($("ano").value), mes: Number($("mes").value) }).select("id").single();
+    if (f.error) { msg.textContent = (f.error.code === "23505" ? "Esta folha já foi processada." : "Erro: " + f.error.message); msg.classList.add("erro"); return; }
+    const rows = linhas.map((l) => { const c = calcular(l); return { folha_id: f.data.id, farmacia_id: farmacia.id, ficha_id: l.ficha, nome: l.nome, cargo: l.cargo,
+      salario_base: num(l.base), sub_alimentacao: num(l.alim), sub_transporte: num(l.transp), outros_abonos: num(l.outros), outros_descontos: num(l.desc),
+      bruto: c.bruto, inss_trabalhador: c.inss, materia_coletavel: c.mc, irt: c.irt, liquido: c.liquido, inss_patronal: c.patronal }; });
+    const r = await sb.from("recibos_salario").insert(rows);
+    if (r.error) { await sb.from("folhas_salario").delete().eq("id", f.data.id); msg.textContent = "Não foi possível guardar: " + r.error.message; msg.classList.add("erro"); return; }
+    msg.textContent = "Folha processada e guardada."; msg.classList.add("ok"); await abrir(); $("msg").textContent = "Folha processada e guardada."; $("msg").classList.add("ok");
+  });
+
+  $("reabrir").addEventListener("click", async () => {
+    if (!confirm("Anular esta folha? Os recibos são apagados e pode processá-la de novo.")) return;
+    const { error } = await sb.from("folhas_salario").delete().eq("id", processada.id);
+    if (error) { $("msg").textContent = "Erro: " + error.message; $("msg").className = "msg erro"; return; }
+    await abrir();
+  });
+
+  $("linhas").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-recibo]"); if (!b) return;
+    const r = recibos[Number(b.dataset.recibo)], mes = MESES[Number($("mes").value) - 1] + " de " + $("ano").value, L = (a, v) => `<tr><td>${a}</td><td class="n">${kz(v)}</td></tr>`;
+    $("recibo").innerHTML = `<h2 style="margin:0">${esc(farmacia.nome || "")}</h2><p style="margin:2px 0">RECIBO DE VENCIMENTO · ${mes}</p>
+      <p><strong>${esc(r.nome)}</strong> · ${esc(r.cargo || "")}</p>
+      <table><tr><th>Abonos</th><th class="n">Valor</th></tr>${L("Salário base", r.salario_base)}${L("Subsídio de alimentação", r.sub_alimentacao)}${L("Subsídio de transporte", r.sub_transporte)}${L("Outros abonos", r.outros_abonos)}
+      <tr><th>Total bruto</th><th class="n">${kz(r.bruto)}</th></tr></table>
+      <table><tr><th>Descontos</th><th class="n">Valor</th></tr>${L("Segurança Social (INSS 3%)", r.inss_trabalhador)}${L("IRT", r.irt)}${L("Outros descontos", r.outros_descontos)}</table>
+      <p style="font-size:18px"><strong>Líquido a receber: ${kz(r.liquido)}</strong></p>
+      <p style="margin-top:50px">Assinatura da entidade: ______________________ &nbsp; Assinatura do trabalhador: ______________________</p>`;
+    document.body.classList.add("so-recibo"); window.print(); document.body.classList.remove("so-recibo");
+  });
+  $("imprimir-resumo").addEventListener("click", () => window.print());
+  $("abrir").addEventListener("click", abrir);
+  iniciar();
+</script>
+</body>
+</html>
