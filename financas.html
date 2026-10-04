@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Finanças</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .abas { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
+  .abas button { flex: 1; white-space: nowrap; padding: 10px 12px; border: 1px solid var(--borda); background: var(--cartao); color: var(--texto); border-radius: 10px; cursor: pointer; font-weight: 600; }
+  .abas button.on { background: var(--cor-primaria); color: #fff; border-color: var(--cor-primaria); }
+  .painel { background: var(--cartao); border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  .kpis div { background: rgba(46,125,50,.10); border-radius: 10px; padding: 10px; font-size: .8rem; } .kpis b { display: block; font-size: 1.1rem; margin-top: 2px; }
+  .kpis .v { background: rgba(198,40,40,.12); } .kpis .v b { color: #c62828; }
+  .btn { background: var(--cor-primaria); color: #fff; border: none; border-radius: 999px; padding: 9px 16px; font-weight: 600; cursor: pointer; font-size: .88rem; }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  .btn3 { background: none; border: 1px solid #c62828; color: #c62828; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  input, select { width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; font-family: inherit; }
+  label { display: block; font-size: .78rem; color: var(--suave); margin: 10px 0 3px; font-weight: 600; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .item { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--borda); align-items: center; }
+  .item small { display: block; color: var(--suave); font-size: .78rem; margin-top: 2px; } .acc { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .venc { color: #c62828; font-weight: 700; } .pago { color: #1b7a2e; font-weight: 700; }
+  .barra { height: 6px; background: var(--borda); border-radius: 4px; margin-top: 6px; overflow: hidden; } .barra i { display: block; height: 100%; background: var(--cor-primaria); }
+  .msg { font-size: .9rem; margin-top: 8px; min-height: 1.1em; } .msg.erro { color: #c62828; } .msg.ok { color: #1b7a2e; }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">💸 Finanças</h2>
+  <div class="abas"><button data-aba="despesas" class="on">💸 Despesas</button><button data-aba="pagar">🧾 Contas a Pagar</button><button data-aba="receber">💳 Contas a Receber</button></div>
+
+  <section class="painel"><div class="kpis" id="kpis"></div>
+    <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+      <div id="filtro-mes" style="flex:1;min-width:140px"><label>Mês</label><input type="month" id="mes"></div>
+      <button class="btn" id="novo">+ Novo</button></div>
+    <form id="form" hidden style="margin-top:6px"></form><div class="msg" id="msg"></div></section>
+  <section class="painel"><div id="lista"></div></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const sb = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  const CATS = ["Renda","Salários","Água e luz","Internet e telefone","Transporte","Compras a fornecedores","Manutenção","Impostos e taxas","Marketing","Outras"];
+  const FORMAS = ["Dinheiro","Transferência","Multicaixa / TPA","Cheque"];
+  const kz = (v) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(v || 0);
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  const pt = (d) => d ? d.split("-").reverse().join("/") : "—";
+  const hoje = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+  let aba = "despesas", farm = null, dados = [], pags = [];
+
+  async function iniciar() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(sb);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "financas", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await sb.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    if (ctx.papel !== "gerente") { document.body.insertAdjacentHTML("beforeend", '<p style="text-align:center;margin:60px 16px">Esta área é só para o Gerente da farmácia.</p>'); return; }
+    farm = ctx.farmacia.id; $("mes").value = hoje().slice(0, 7); $("conteudo").hidden = false; await carregar();
+  }
+
+  async function carregar() {
+    $("form").hidden = true; $("msg").textContent = "";
+    $("filtro-mes").hidden = aba !== "despesas"; $("novo").textContent = aba === "despesas" ? "+ Nova despesa" : aba === "pagar" ? "+ Nova conta a pagar" : "+ Nova conta a receber";
+    if (aba === "despesas") {
+      const [a, m] = $("mes").value.split("-").map(Number), fim = new Date(a, m, 1).toISOString().slice(0, 10), ini = `${$("mes").value}-01`;
+      const r = await sb.from("despesas").select("*").gte("data_despesa", ini).lt("data_despesa", fim).order("data_despesa", { ascending: false });
+      if (r.error) return erro(r.error); dados = r.data; desenharDespesas();
+    } else {
+      const [d, p] = await Promise.all([sb.from("dividas").select("*").eq("tipo", aba).order("data_vencimento", { nullsFirst: false }), sb.from("pagamentos_divida").select("divida_id, valor")]);
+      if (d.error || p.error) return erro(d.error || p.error); dados = d.data; pags = p.data; desenharDividas();
+    }
+  }
+  function erro(e) { console.error(e); $("lista").innerHTML = `<p class="msg erro">Erro: ${esc(e.message)}</p>`; }
+
+  function desenharDespesas() {
+    const tot = dados.reduce((s, d) => s + Number(d.valor), 0), por = {};
+    dados.forEach((d) => { por[d.categoria] = (por[d.categoria] || 0) + Number(d.valor); });
+    const maior = Object.entries(por).sort((a, b) => b[1] - a[1])[0];
+    $("kpis").innerHTML = `<div>Total do mês<b>${kz(tot)}</b></div><div>Maior categoria<b>${maior ? esc(maior[0]) : "—"}</b>${maior ? kz(maior[1]) : ""}</div>`;
+    $("lista").innerHTML = dados.length ? dados.map((d) => `<div class="item"><div><strong>${esc(d.categoria)}</strong> · ${kz(d.valor)}<small>${pt(d.data_despesa)} · ${esc(d.forma_pagamento || "—")}${d.descricao ? " · " + esc(d.descricao) : ""}</small></div>
+      <button class="btn3" data-del="${esc(d.id)}">🗑️</button></div>`).join("") : '<p class="msg">Sem despesas neste mês.</p>';
+  }
+
+  function desenharDividas() {
+    const pago = (id) => pags.filter((p) => p.divida_id === id).reduce((s, p) => s + Number(p.valor), 0), h = hoje();
+    const L = dados.map((d) => ({ ...d, pago: pago(d.id), em: Number(d.valor_total) - pago(d.id) }));
+    const abertas = L.filter((d) => d.em > 0.004), venc = abertas.filter((d) => d.data_vencimento && d.data_vencimento < h);
+    const s = (a) => a.reduce((t, d) => t + d.em, 0);
+    $("kpis").innerHTML = `<div>${aba === "pagar" ? "Total a pagar" : "Total a receber"}<b>${kz(s(abertas))}</b></div><div class="v">Vencido<b>${kz(s(venc))}</b>${venc.length} conta(s)</div>`;
+    $("lista").innerHTML = L.length ? L.map((d) => { const v = d.em > 0.004 && d.data_vencimento && d.data_vencimento < h, pc = Math.min(100, d.pago / d.valor_total * 100);
+      return `<div class="item"><div style="flex:1"><strong>${esc(d.pessoa)}</strong> · ${kz(d.valor_total)}<small>${esc(d.descricao || "")} Vence: <span class="${v ? "venc" : ""}">${pt(d.data_vencimento)}${v ? " ⚠️ vencida" : ""}</span></small>
+        <small>${d.em <= 0.004 ? '<span class="pago">✅ Liquidada</span>' : `${aba === "pagar" ? "Pago" : "Recebido"} ${kz(d.pago)} · Em dívida <b>${kz(d.em)}</b>`}</small><div class="barra"><i style="width:${pc}%"></i></div></div>
+        <div class="acc">${d.em > 0.004 ? `<button class="btn2" data-pag="${esc(d.id)}" data-em="${d.em}">💵 ${aba === "pagar" ? "Pagar" : "Receber"}</button>` : ""}<button class="btn3" data-delD="${esc(d.id)}">🗑️</button></div></div>`; }).join("")
+      : '<p class="msg">Sem registos.</p>';
+  }
+
+  $("novo").addEventListener("click", () => {
+    const f = $("form"), opt = (a) => a.map((x) => `<option>${x}</option>`).join("");
+    f.innerHTML = aba === "despesas"
+      ? `<div class="duas"><div><label>Data</label><input type="date" id="f-data" value="${hoje()}" required></div><div><label>Valor (Kz)</label><input type="number" id="f-valor" min="0" step="0.01" required></div></div>
+         <div class="duas"><div><label>Categoria</label><select id="f-cat">${opt(CATS)}</select></div><div><label>Pagamento</label><select id="f-forma">${opt(FORMAS)}</select></div></div>
+         <label>Descrição</label><input id="f-desc"><button class="btn" style="width:100%;margin-top:12px">Guardar despesa</button>`
+      : `<label>${aba === "pagar" ? "Fornecedor / credor" : "Cliente / devedor"}</label><input id="f-pessoa" required><label>Descrição</label><input id="f-desc">
+         <div class="duas"><div><label>Valor total (Kz)</label><input type="number" id="f-valor" min="0.01" step="0.01" required></div><div><label>Emissão</label><input type="date" id="f-emi" value="${hoje()}" required></div></div>
+         <label>Vencimento</label><input type="date" id="f-venc"><button class="btn" style="width:100%;margin-top:12px">Guardar</button>`;
+    f.hidden = !f.hidden;
+  });
+  $("mes").addEventListener("change", carregar);
+  document.querySelector(".abas").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; aba = b.dataset.aba;
+    document.querySelectorAll(".abas button").forEach((x) => x.classList.toggle("on", x === b)); carregar(); });
+
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault(); const v = (i) => $(i).value.trim() || null;
+    const r = aba === "despesas"
+      ? await sb.from("despesas").insert({ farmacia_id: farm, data_despesa: v("f-data"), categoria: $("f-cat").value, descricao: v("f-desc"), valor: Number($("f-valor").value), forma_pagamento: $("f-forma").value })
+      : await sb.from("dividas").insert({ farmacia_id: farm, tipo: aba, pessoa: v("f-pessoa"), descricao: v("f-desc"), valor_total: Number($("f-valor").value), data_emissao: v("f-emi"), data_vencimento: v("f-venc") });
+    if (r.error) { $("msg").textContent = "Não foi possível guardar: " + r.error.message; $("msg").className = "msg erro"; return; }
+    await carregar(); $("msg").textContent = "Guardado."; $("msg").className = "msg ok";
+  });
+
+  $("lista").addEventListener("click", async (e) => {
+    const d = e.target.closest("[data-del]"), p = e.target.closest("[data-pag]"), x = e.target.closest("[data-delD]");
+    if (d && confirm("Apagar esta despesa?")) { await sb.from("despesas").delete().eq("id", d.dataset.del); await carregar(); }
+    if (x && confirm("Apagar esta conta e os seus pagamentos?")) { await sb.from("dividas").delete().eq("id", x.dataset.delD); await carregar(); }
+    if (p) {
+      const em = Number(p.dataset.em), t = prompt(`Valor ${aba === "pagar" ? "pago" : "recebido"} (Kz). Em dívida: ${kz(em)}`, em);
+      const valor = Number(String(t ?? "").replace(",", ".")); if (!t || !(valor > 0)) return;
+      if (valor > em + 0.004) { alert("O valor é superior ao que está em dívida."); return; }
+      const r = await sb.from("pagamentos_divida").insert({ divida_id: p.dataset.pag, farmacia_id: farm, data_pagamento: hoje(), valor });
+      if (r.error) { alert("Não foi possível registar: " + r.error.message); return; } await carregar();
+    }
+  });
+  iniciar();
+</script>
+</body>
+</html>

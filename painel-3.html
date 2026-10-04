@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Painel</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .banner { background: linear-gradient(135deg,#1b5e20,#2e7d32); color:#fff; border-radius:16px; padding:20px; margin-bottom:14px; }
+  .banner small { opacity:.85; display:block; }
+  .banner h1 { margin:6px 0; font-size:1.6rem; }
+  .crit { border:2px solid #c62828; border-radius:14px; padding:12px 14px; margin-bottom:14px; background:var(--cartao); display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .crit b { color:#c62828; }
+  .crit small { display:block; color:var(--suave); margin-top:2px; }
+  .crit button { background:#1b5e20; color:#fff; border:none; border-radius:8px; padding:8px 12px; font-weight:600; cursor:pointer; }
+  .boasvindas { background:linear-gradient(135deg,#1565c0,#1e88e5); color:#fff; border-radius:14px; padding:14px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .boasvindas button { background:rgba(255,255,255,.2); border:none; color:#fff; width:32px; height:32px; border-radius:8px; cursor:pointer; }
+  h2.titulo { font-size:1.25rem; margin:18px 0 10px; }
+  .cartoes { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:16px; }
+  @media (min-width:720px){ .cartoes { grid-template-columns:repeat(4,1fr); } }
+  .cartao { background:var(--cartao); border-radius:12px; padding:14px; box-shadow:0 2px 12px rgba(0,0,0,.06); border-left:4px solid #1b5e20; }
+  .cartao.azul { border-left-color:#1565c0; } .cartao.verm { border-left-color:#c62828; } .cartao.lar { border-left-color:#ef8f00; }
+  .rotulo { font-size:.68rem; color:var(--suave); text-transform:uppercase; letter-spacing:.05em; }
+  .valor { font-size:1.9rem; font-weight:800; margin-top:6px; }
+  .nota { font-size:.78rem; color:var(--suave); margin-top:2px; }
+  .painel { background:var(--cartao); border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
+  .painel h3 { margin:0; padding:14px 16px; border-bottom:1px solid var(--borda); font-size:1.05rem; }
+  .painel .corpo { padding:12px 16px; }
+  .alerta { background:#fff7ec; color:#333; border-left:4px solid #ef8f00; border-radius:6px; padding:10px 12px; margin-bottom:8px; font-size:.9rem; }
+  .alerta.zero { background:#fdecea; border-left-color:#c62828; }
+  html[data-tema="dark"] .alerta { background:#2b2417; color:#eee; } html[data-tema="dark"] .alerta.zero { background:#2d1a1a; }
+  .busca { width:100%; padding:10px; border:1px solid var(--borda); background:var(--fundo); color:var(--texto); border-radius:8px; font-size:1rem; margin-bottom:12px; }
+  .vazio { color:var(--suave); } .erro { color:#c62828; font-size:.9rem; }
+  .carr { position:relative; border-radius:16px; overflow:hidden; margin-bottom:14px; aspect-ratio:16/7; background:#0003; }
+  .carr img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 1s; } .carr img.on { opacity:1; }
+  .carr .leg { position:absolute; left:0; right:0; bottom:0; padding:18px 14px 10px; color:#fff; background:linear-gradient(transparent,rgba(0,0,0,.65)); font-weight:600; }
+  .carr .gerir { position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; border:none; border-radius:999px; padding:6px 10px; cursor:pointer; font-size:.8rem; }
+  .gf { background:var(--cartao); border-radius:14px; padding:14px; margin-bottom:14px; } .gf input { width:100%; padding:9px; border:1px solid #ddd; border-radius:8px; margin:6px 0; font-size:1rem; }
+  .gf .it { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--borda); } .gf .it img { width:64px; height:40px; object-fit:cover; border-radius:6px; } .gf .it span { flex:1; font-size:.85rem; }
+  .aviso-acesso { max-width:480px; margin:60px auto; text-align:center; }
+</style>
+</head>
+<body>
+
+<div id="topo"></div>
+
+<main id="conteudo-principal" style="display:none">
+  <section class="banner">
+    <small id="saudacao"></small>
+    <h1 id="nome-farmacia">Farmácia</h1>
+    <small>Painel de Gestão · <span id="data-extenso"></span></small>
+  </section>
+
+  <section id="carr-area" hidden>
+    <div class="carr" id="carr"><div class="leg" id="carr-leg"></div><button class="gerir" id="gerir" hidden>🖼️ Fotos</button></div>
+    <div class="gf" id="gf" hidden><strong>🖼️ Fotos do painel</strong><p class="vazio" style="margin:2px 0 6px">Mudam sozinhas a cada 5 segundos. JPG, PNG ou WebP, até 5 MB.</p>
+      <input type="text" id="gf-leg" maxlength="80" placeholder="Legenda (opcional)"><input type="file" id="gf-file" accept="image/jpeg,image/png,image/webp">
+      <div id="gf-lista"></div><div class="erro" id="gf-msg"></div></div>
+  </section>
+
+  <section class="crit" id="faixa-critica" style="display:none">
+    <div><b id="crit-titulo"></b><small id="crit-nomes"></small></div>
+    <button id="botao-whatsapp">📲 Enviar alerta WhatsApp</button>
+  </section>
+
+  <section class="boasvindas" id="boasvindas">
+    <div><strong id="bv-titulo"></strong><div>Boas vendas e bom trabalho! 💚</div></div>
+    <button id="fechar-bv" aria-label="Fechar">✕</button>
+  </section>
+
+  <h2 class="titulo">Painel Geral</h2>
+  <section class="cartoes">
+    <div class="cartao"><div class="rotulo">Produtos em stock</div><div class="valor" id="num-produtos">–</div><div class="nota">itens cadastrados</div></div>
+    <div class="cartao azul"><div class="rotulo">Vendas hoje</div><div class="valor" id="num-vendas">–</div><div class="nota" id="total-vendas">Kz 0,00</div></div>
+    <div class="cartao verm"><div class="rotulo">Stock crítico</div><div class="valor" id="num-critico">–</div><div class="nota">abaixo do mínimo</div></div>
+    <div class="cartao lar"><div class="rotulo">Sem stock</div><div class="valor" id="num-zero">–</div><div class="nota">produtos esgotados</div></div>
+  </section>
+
+  <section class="painel">
+    <h3>⚠️ Alertas</h3>
+    <div class="corpo">
+      <div id="alertas-fin"></div>
+      <input type="search" class="busca" id="pesquisa-alertas" placeholder="🔍 Pesquisar nos alertas...">
+      <div id="lista-alertas"><p class="vazio">A carregar...</p></div>
+      <div class="erro" id="mensagem-erro"></div>
+    </div>
+  </section>
+</main>
+
+<div class="aviso-acesso" id="aviso-sem-acesso" style="display:none">
+  <p>Esta área é só para o Gerente e o Farmacêutico.</p>
+  <a href="app.html">Voltar às vendas</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const SUPABASE_URL = "https://qillinntbhoecurnuheq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh";
+  const STOCK_MINIMO_PADRAO = 10;
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let alertas = [], farmaciaId = null, eGerente = false, fotos = [], timer = null;
+  let farmaciaNome = "";
+
+  const formatarKz = (v) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(v || 0);
+  const $ = (id) => document.getElementById(id);
+  function esc(t) { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; }
+
+  async function sair() { await supabaseClient.auth.signOut(); window.location.href = "login.html"; }
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = "login.html"; return; }
+    const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!contexto) { window.location.href = "login.html"; return; }
+
+    const nome = user.user_metadata?.nome || (user.email || "").split("@")[0];
+    MenuAlviro.montar({ papel: contexto.papel, activo: "painel", nome, aoSair: sair });
+    AuthFarmacia.aplicarMarca(contexto.farmacia);
+
+    if (contexto.papel === "caixa") { $("aviso-sem-acesso").style.display = "block"; return; }
+
+    farmaciaNome = contexto.farmacia.nome || "Farmácia"; farmaciaId = contexto.farmacia.id; eGerente = contexto.papel === "gerente";
+    const hora = new Date().getHours();
+    const saudacao = hora < 12 ? "Bom dia" : hora < 19 ? "Boa tarde" : "Boa noite";
+    $("saudacao").textContent = `${saudacao}, ${nome}`;
+    $("nome-farmacia").textContent = farmaciaNome;
+    $("bv-titulo").textContent = `👋 ${saudacao}! Saúde em primeiro lugar`;
+    $("data-extenso").textContent = new Date().toLocaleDateString("pt-AO", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    $("conteudo-principal").style.display = "block";
+    await Promise.all([carregarProdutos(), carregarVendasDeHoje(), carregarFotos(), eGerente ? carregarDividas() : null]);
+  }
+
+  async function carregarProdutos() {
+    let r = await supabaseClient.from("produtos").select("id, nome, quantidade_stock, stock_minimo").order("nome");
+    if (r.error) r = await supabaseClient.from("produtos").select("id, nome, quantidade_stock").order("nome");
+    if (r.error) { console.error(r.error); $("lista-alertas").innerHTML = ""; $("mensagem-erro").textContent = "Não foi possível carregar os produtos."; return; }
+
+    const lista = r.data.map((p) => ({ nome: p.nome, stock: p.quantidade_stock ?? 0, minimo: p.stock_minimo ?? STOCK_MINIMO_PADRAO }));
+    alertas = lista.filter((p) => p.stock <= p.minimo).sort((a, b) => a.stock - b.stock || a.nome.localeCompare(b.nome));
+
+    $("num-produtos").textContent = lista.length;
+    $("num-critico").textContent = alertas.length;
+    $("num-zero").textContent = lista.filter((p) => p.stock <= 0).length;
+
+    if (alertas.length) {
+      $("faixa-critica").style.display = "flex";
+      $("crit-titulo").textContent = `⚠️ Stock Crítico: ${alertas.length} produto(s)`;
+      $("crit-nomes").textContent = alertas.slice(0, 5).map((p) => p.nome).join(", ") + (alertas.length > 5 ? "…" : "");
+    }
+    desenhar(alertas);
+  }
+
+  function desenhar(itens) {
+    $("lista-alertas").innerHTML = itens.length ? itens.map((p) => `
+      <div class="alerta ${p.stock <= 0 ? "zero" : ""}">📦 <strong>${esc(p.nome)}</strong> — ${p.stock <= 0 ? "Sem stock" : "Stock baixo"}: ${p.stock} un. (mín: ${p.minimo}).</div>`).join("")
+      : '<p class="vazio">Sem alertas de stock. ✅</p>';
+  }
+
+  async function carregarVendasDeHoje() {
+    const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
+    const { data, error } = await supabaseClient.from("vendas").select("total").gte("created_at", inicio.toISOString());
+    if (error) { console.error("vendas de hoje:", error); $("num-vendas").textContent = "–"; $("total-vendas").textContent = "indisponível"; return; }
+    $("num-vendas").textContent = data.length;
+    $("total-vendas").textContent = formatarKz(data.reduce((s, v) => s + Number(v.total || 0), 0));
+  }
+
+  $("pesquisa-alertas").addEventListener("input", (e) => {
+    const t = e.target.value.trim().toLowerCase();
+    desenhar(t ? alertas.filter((p) => p.nome.toLowerCase().includes(t)) : alertas);
+  });
+  $("fechar-bv").addEventListener("click", () => { $("boasvindas").style.display = "none"; });
+  $("botao-whatsapp").addEventListener("click", () => {
+    const texto = `⚠️ Stock crítico — ${farmaciaNome}\n` + alertas.slice(0, 30).map((p) => `• ${p.nome}: ${p.stock} un. (mín ${p.minimo})`).join("\n");
+    window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
+  });
+
+  // ---- Alertas de dívidas vencidas ----
+  async function carregarDividas() {
+    const [d, pg] = await Promise.all([supabaseClient.from("dividas").select("id, tipo, valor_total, data_vencimento"), supabaseClient.from("pagamentos_divida").select("divida_id, valor")]);
+    if (d.error || pg.error) { console.error(d.error || pg.error); return; }
+    const t = new Date(), hoje = new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+    const em7 = new Date(t.getTime() + 7 * 864e5 - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+    const abertas = d.data.map((x) => ({ ...x, em: Number(x.valor_total) - pg.data.filter((y) => y.divida_id === x.id).reduce((s, y) => s + Number(y.valor), 0) })).filter((x) => x.em > 0.004 && x.data_vencimento);
+    const soma = (a) => a.reduce((s, x) => s + x.em, 0), L = [];
+    const linha = (ico, txt, zero) => `<div class="alerta ${zero ? "zero" : ""}">${ico} ${txt} <a href="financas.html">Ver</a></div>`;
+    const vp = abertas.filter((x) => x.tipo === "pagar" && x.data_vencimento < hoje), vr = abertas.filter((x) => x.tipo === "receber" && x.data_vencimento < hoje);
+    const pp = abertas.filter((x) => x.tipo === "pagar" && x.data_vencimento >= hoje && x.data_vencimento <= em7);
+    if (vp.length) L.push(linha("🧾", `<strong>${vp.length} conta(s) a pagar vencida(s)</strong>: ${formatarKz(soma(vp))}.`, true));
+    if (vr.length) L.push(linha("💳", `<strong>${vr.length} conta(s) a receber vencida(s)</strong>: ${formatarKz(soma(vr))}.`, false));
+    if (pp.length) L.push(linha("📅", `<strong>${pp.length} conta(s) a pagar vencem nos próximos 7 dias</strong>: ${formatarKz(soma(pp))}.`, false));
+    $("alertas-fin").innerHTML = L.join("");
+  }
+
+  // ---- Fotos do painel (carrossel automático) ----
+  const EXTF = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  async function carregarFotos() {
+    const { data, error } = await supabaseClient.from("painel_fotos").select("id, caminho, legenda").order("criado_em");
+    if (error) { console.error(error); return; }
+    fotos = data; let urls = [];
+    if (fotos.length) { const r = await supabaseClient.storage.from("painel-fotos").createSignedUrls(fotos.map((f) => f.caminho), 3600); urls = r.data || []; }
+    fotos.forEach((f) => { f.url = (urls.find((u) => u.path === f.caminho) || {}).signedUrl; });
+    $("carr-area").hidden = !(fotos.length || eGerente); $("gerir").hidden = !eGerente; desenharCarrossel(); desenharGestao();
+  }
+  function desenharCarrossel() {
+    clearInterval(timer); const c = $("carr");
+    c.querySelectorAll("img").forEach((i) => i.remove());
+    const ok = fotos.filter((f) => f.url);
+    if (!ok.length) { $("carr-leg").textContent = eGerente ? "Toque em 🖼️ Fotos para adicionar imagens ao painel." : ""; return; }
+    ok.forEach((f, i) => { const im = new Image(); im.src = f.url; im.alt = ""; if (!i) im.className = "on"; c.insertBefore(im, c.firstChild); });
+    const imgs = [...c.querySelectorAll("img")].reverse(); let n = 0; $("carr-leg").textContent = ok[0].legenda || "";
+    if (ok.length > 1) timer = setInterval(() => { imgs[n].classList.remove("on"); n = (n + 1) % imgs.length; imgs[n].classList.add("on"); $("carr-leg").textContent = ok[n].legenda || ""; }, 5000);
+  }
+  function desenharGestao() {
+    $("gf-lista").innerHTML = fotos.map((f) => `<div class="it"><img src="${esc(f.url || "")}" alt=""><span>${esc(f.legenda || "Sem legenda")}</span><button class="btn2" data-fdel="${esc(f.id)}" style="background:none;border:1px solid #c62828;color:#c62828;border-radius:8px;padding:5px 9px;cursor:pointer">🗑️</button></div>`).join("");
+  }
+  $("gerir").addEventListener("click", () => { $("gf").hidden = !$("gf").hidden; });
+  $("gf-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0], msg = $("gf-msg"); e.target.value = ""; msg.textContent = ""; if (!file) return;
+    if (!EXTF[file.type]) { msg.textContent = "Só JPG, PNG ou WebP."; return; }
+    if (file.size > 5 * 1024 * 1024) { msg.textContent = "A imagem tem mais de 5 MB."; return; }
+    const caminho = `${farmaciaId}/${crypto.randomUUID()}.${EXTF[file.type]}`;
+    const up = await supabaseClient.storage.from("painel-fotos").upload(caminho, file, { contentType: file.type });
+    if (up.error) { msg.textContent = "Não foi possível carregar: " + up.error.message; return; }
+    const ins = await supabaseClient.from("painel_fotos").insert({ farmacia_id: farmaciaId, caminho, legenda: $("gf-leg").value.trim() || null });
+    if (ins.error) { await supabaseClient.storage.from("painel-fotos").remove([caminho]); msg.textContent = "Não foi possível registar: " + ins.error.message; return; }
+    $("gf-leg").value = ""; await carregarFotos();
+  });
+  $("gf-lista").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-fdel]"); if (!b || !confirm("Apagar esta foto?")) return;
+    const f = fotos.find((x) => x.id === b.dataset.fdel); if (!f) return;
+    await supabaseClient.storage.from("painel-fotos").remove([f.caminho]);
+    await supabaseClient.from("painel_fotos").delete().eq("id", f.id); await carregarFotos();
+  });
+
+  iniciar();
+</script>
+</body>
+</html>
