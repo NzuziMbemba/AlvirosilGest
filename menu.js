@@ -131,3 +131,4 @@
 
   window.MenuAlviro = { montar };
 })();
+{ id: "balanco", ico: "⚖️", nome: "Balanço", url: "balanco.html", papeis: ["gerente"] },
