@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Caixa</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .grelha { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 760px) { .grelha { grid-template-columns: 1.5fr 1fr; align-items: start; } }
+  .painel { background: var(--cartao); border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.06); overflow: hidden; }
+  .barra { display: flex; gap: 8px; padding: 12px; border-bottom: 1px solid var(--borda); flex-wrap: wrap; }
+  .barra input { flex: 1; min-width: 140px; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; background: var(--fundo); color: var(--texto); }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: .9rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  #produtos { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 12px; max-height: 70vh; overflow-y: auto; }
+  .prod { border: 1px solid var(--borda); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; background: var(--cartao); color: inherit; font: inherit; }
+  .prod:active { transform: scale(.97); } .prod:disabled { opacity: .45; cursor: not-allowed; }
+  .prod .n { font-size: .85rem; min-height: 2.4em; display: flex; align-items: center; justify-content: center; }
+  .prod .p { font-family: ui-monospace, monospace; font-weight: 800; color: var(--cor-primaria); margin: 4px 0 2px; }
+  html[data-tema="dark"] .prod .p { color: #7fd68a; } .prod .s { font-size: .72rem; color: var(--suave); } .prod .s.baixo { color: #c62828; font-weight: 700; }
+  .cab-carr { background: var(--cor-primaria); color: #fff; padding: 12px 14px; font-weight: 700; }
+  #carrinho { padding: 8px 14px; min-height: 90px; }
+  .vazio { text-align: center; color: var(--suave); padding: 26px 0; }
+  .it { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--borda); font-size: .9rem; }
+  .it .nm { flex: 1; min-width: 0; } .it .nm small { display: block; color: var(--suave); }
+  .qtd { display: flex; align-items: center; gap: 6px; } .qtd button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--borda); background: var(--fundo); color: inherit; cursor: pointer; font-size: 1rem; }
+  .tot { padding: 12px 14px; border-top: 1px solid var(--borda); } .tot .l { display: flex; justify-content: space-between; color: var(--suave); font-size: .9rem; }
+  .tot .t { display: flex; justify-content: space-between; font-weight: 800; font-size: 1.4rem; margin-top: 6px; font-family: ui-monospace, monospace; }
+  .campos { padding: 10px 14px; border-top: 1px solid var(--borda); display: grid; gap: 10px; }
+  .campos label { font-size: .82rem; color: var(--suave); display: block; margin-bottom: 3px; }
+  .campos input, .campos select {
+    width: 100%; padding: 9px; border: 1px solid var(--borda); border-radius: 8px;
+    font-size: .95rem; background: var(--fundo); color: var(--texto);
+  }
+  .campos .ajuda { font-size: .74rem; color: var(--suave); margin-top: 2px; }
+  .acoes { padding: 0 14px 14px; display: grid; gap: 8px; }
+  #finalizar { padding: 13px; border: none; border-radius: 10px; background: var(--cor-primaria); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; } #finalizar:disabled { opacity: .5; cursor: not-allowed; }
+  #limpar { padding: 11px; border-radius: 10px; background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); cursor: pointer; font-size: .95rem; }
+  html[data-tema="dark"] #limpar { color: #7fd68a; border-color: #7fd68a; }
+  .msg { font-size: .88rem; padding: 0 14px 12px; min-height: 1.2em; } .msg.ok { color: #1b7a2e; } .msg.erro { color: #c62828; }
+  #cam { position: fixed; inset: 0; background: #000d; display: grid; place-items: center; z-index: 60; padding: 16px; }
+  #cam video { width: 100%; max-width: 420px; border-radius: 12px; } #cam button { margin-top: 12px; padding: 10px 18px; border-radius: 10px; border: none; font-size: 1rem; }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">🛒 Caixa / Ponto de Venda</h2>
+  <div class="grelha">
+    <section class="painel">
+      <div class="barra">
+        <input type="search" id="pesquisa" placeholder="🔍 Pesquisar produto...">
+        <input type="text" id="codigo" placeholder="📷 Código de barras" inputmode="numeric" autocomplete="off">
+        <button class="btn2" id="camara" title="Ler com a câmara">📷</button>
+      </div>
+      <div id="produtos"><p class="vazio">A carregar produtos...</p></div>
+    </section>
+    <section class="painel">
+      <div class="cab-carr">🛒 Carrinho de Venda</div>
+      <div id="carrinho"></div>
+      <div class="tot"><div class="l"><span>Subtotal</span><span id="subtotal">Kz 0,00</span></div><div class="t"><span>TOTAL</span><span id="total">Kz 0,00</span></div></div>
+
+      <div class="campos">
+        <div>
+          <label for="data-venda">Data da Venda</label>
+          <input type="date" id="data-venda">
+          <div class="ajuda">Só altera se estiveres a lançar uma venda atrasada de outro dia.</div>
+        </div>
+        <div>
+          <label for="cliente-nome">Cliente (opcional)</label>
+          <input type="text" id="cliente-nome" placeholder="Nome do cliente">
+        </div>
+        <div>
+          <label for="cliente-nif">NIF do Cliente (opcional)</label>
+          <input type="text" id="cliente-nif" placeholder="Ex: 5417123456 (deixe vazio p/ Consumidor Final)">
+        </div>
+        <div>
+          <label for="forma-pagamento">Forma de Pagamento</label>
+          <select id="forma-pagamento">
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Multicaixa Express">Multicaixa Express</option>
+            <option value="Transferência">Transferência</option>
+            <option value="Cartão">Cartão</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="acoes"><button id="finalizar" disabled>✅ Finalizar Venda</button><button id="limpar">🗑️ Limpar</button></div>
+      <div class="msg" id="msg"></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script src="vendus-integration.js"></script>
+<script>
+  const supabaseClient = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  let produtos = [], carrinho = [];
+  const kz = (v) => "Kz " + Number(v || 0).toLocaleString("pt-AO", { minimumFractionDigits: 2 });
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  const hojeLocal = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+
+  // Data da venda começa sempre em hoje, mas pode ser mudada para lançar
+  // vendas atrasadas.
+  $("data-venda").value = hojeLocal();
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "vendas", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await supabaseClient.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    $("conteudo").hidden = false;
+    await carregarProdutos(); desenharCarrinho();
+  }
+
+  async function carregarProdutos() {
+    let r = await supabaseClient.from("produtos").select("id, nome, preco_venda, quantidade_stock, codigo_barras").order("nome");
+    if (r.error) r = await supabaseClient.from("produtos").select("id, nome, preco_venda, quantidade_stock").order("nome");
+    if (r.error) { console.error(r.error); $("produtos").innerHTML = '<p class="vazio">Erro ao carregar produtos.</p>'; return; }
+    produtos = r.data; filtrar();
+  }
+
+  function filtrar() {
+    const t = $("pesquisa").value.trim().toLowerCase(), l = produtos.filter((p) => p.nome.toLowerCase().includes(t));
+    $("produtos").innerHTML = l.length ? l.map((p) => `<button class="prod" data-id="${esc(p.id)}" ${p.quantidade_stock <= 0 ? "disabled" : ""}>
+      <div class="n">${esc(p.nome)}</div><div class="p">${kz(p.preco_venda)}</div><div class="s ${p.quantidade_stock <= 10 ? "baixo" : ""}">Stock: ${p.quantidade_stock}</div></button>`).join("")
+      : '<p class="vazio">Nenhum produto encontrado.</p>';
+  }
+  $("pesquisa").addEventListener("input", filtrar);
+  $("produtos").addEventListener("click", (e) => { const b = e.target.closest("[data-id]"); if (b) adicionar(b.dataset.id); });
+
+  function adicionar(id) {
+    const p = produtos.find((x) => x.id === id); if (!p) return;
+    const it = carrinho.find((x) => x.produto_id === id);
+    if ((it ? it.quantidade : 0) + 1 > p.quantidade_stock) { aviso("Stock máximo atingido para " + p.nome + ".", true); return; }
+    it ? it.quantidade++ : carrinho.push({ produto_id: p.id, nome: p.nome, preco_unitario: Number(p.preco_venda), quantidade: 1 });
+    aviso(""); desenharCarrinho();
+  }
+  function aviso(t, erro) { $("msg").textContent = t; $("msg").className = "msg" + (erro ? " erro" : ""); }
+
+  function desenharCarrinho() {
+    $("carrinho").innerHTML = carrinho.length ? carrinho.map((i) => `<div class="it"><div class="nm">${esc(i.nome)}<small>${kz(i.preco_unitario)}</small></div>
+      <div class="qtd"><button data-m="${esc(i.produto_id)}">−</button><strong>${i.quantidade}</strong><button data-a="${esc(i.produto_id)}">+</button></div>
+      <strong>${kz(i.preco_unitario * i.quantidade)}</strong></div>`).join("") : '<div class="vazio">🛒<br>Adiciona produtos ao carrinho</div>';
+    const total = carrinho.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0);
+    $("subtotal").textContent = $("total").textContent = kz(total); $("finalizar").disabled = !carrinho.length;
+  }
+  $("carrinho").addEventListener("click", (e) => {
+    const m = e.target.closest("[data-m]"), a = e.target.closest("[data-a]");
+    if (a) adicionar(a.dataset.a);
+    if (m) { const i = carrinho.find((x) => x.produto_id === m.dataset.m); if (i && --i.quantidade <= 0) carrinho = carrinho.filter((x) => x !== i); desenharCarrinho(); }
+  });
+  $("limpar").addEventListener("click", () => {
+    carrinho = []; aviso(""); desenharCarrinho();
+    $("cliente-nome").value = ""; $("cliente-nif").value = ""; $("forma-pagamento").value = "Dinheiro";
+    $("data-venda").value = hojeLocal();
+  });
+
+  function porCodigo(c) {
+    const p = produtos.find((x) => x.codigo_barras && String(x.codigo_barras).trim() === String(c).trim());
+    if (p) adicionar(p.id); else aviso("Código " + c + " não encontrado.", true);
+  }
+  $("codigo").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); const c = $("codigo").value.trim(); $("codigo").value = ""; if (c) porCodigo(c); } });
+  $("camara").addEventListener("click", async () => {
+    if (!("BarcodeDetector" in window)) { aviso("Este navegador não lê códigos pela câmara. Escreva o código no campo.", true); return; }
+    let fluxo;
+    try { fluxo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); } catch (_) { aviso("Sem acesso à câmara.", true); return; }
+    const caixa = document.createElement("div"); caixa.id = "cam"; caixa.innerHTML = '<div style="text-align:center"><video autoplay playsinline muted></video><br><button>Cancelar</button></div>';
+    document.body.appendChild(caixa); const v = caixa.querySelector("video"); v.srcObject = fluxo;
+    const det = new BarcodeDetector(); let vivo = true;
+    const fechar = () => { vivo = false; fluxo.getTracks().forEach((t) => t.stop()); caixa.remove(); };
+    caixa.querySelector("button").onclick = fechar;
+    (async function ler() { while (vivo) { try { const r = await det.detect(v); if (r.length) { fechar(); porCodigo(r[0].rawValue); return; } } catch (_) {} await new Promise((s) => setTimeout(s, 300)); } })();
+  });
+
+  // Se houver nome de cliente, cria (ou usa) o registo em clientes antes de
+  // finalizar a venda, para a venda ficar associada a esse cliente.
+  async function obterClienteId() {
+    const nome = $("cliente-nome").value.trim();
+    if (!nome) return null;
+    const nif = $("cliente-nif").value.trim() || null;
+
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    const { data, error } = await supabaseClient
+      .from("clientes")
+      .insert({ farmacia_id: ctx.farmacia.id, nome, nif })
+      .select("id")
+      .single();
+
+    if (error) { console.error(error); return null; }
+    return data.id;
+  }
+
+  // Converte a data escolhida num timestamp: se for hoje, usa a hora
+  // actual; se for outro dia (venda atrasada), usa meio-dia desse dia.
+  function calcularDataVenda() {
+    const valor = $("data-venda").value;
+    const hoje = hojeLocal();
+    if (!valor || valor === hoje) return new Date().toISOString();
+    return new Date(valor + "T12:00:00").toISOString();
+  }
+
+  $("finalizar").addEventListener("click", async () => {
+    const b = $("finalizar"); b.disabled = true; b.textContent = "A gravar..."; aviso("");
+    try {
+      const clienteId = await obterClienteId();
+      const { data: res, error } = await supabaseClient.rpc("finalizar_venda", {
+        p_itens: carrinho.map((i) => ({ produto_id: i.produto_id, quantidade: i.quantidade })),
+        p_cliente_id: clienteId,
+        p_forma_pagamento: $("forma-pagamento").value,
+        p_data_venda: calcularDataVenda(),
+      });
+      if (error) throw error;
+      const venda = res[0]; aviso(`Venda registada (${kz(venda.total)}). A emitir factura...`);
+      const f = await VendusIntegration.emitirFactura(venda.venda_id);
+      aviso(f.contingencia ? `Venda registada (${kz(venda.total)}). Factura em contingência: será emitida quando houver ligação.` : `Venda registada. Factura ${f.numero_factura} emitida.`);
+      $("msg").classList.add("ok");
+      carrinho = []; desenharCarrinho();
+      $("cliente-nome").value = ""; $("cliente-nif").value = ""; $("forma-pagamento").value = "Dinheiro";
+      $("data-venda").value = hojeLocal();
+      await carregarProdutos();
+    } catch (e) {
+      console.error(e);
+      aviso(e.message?.includes("Stock insuficiente") ? "Stock insuficiente: outra caixa pode ter vendido primeiro." : "Não foi possível registar a venda.", true);
+    } finally { b.textContent = "✅ Finalizar Venda"; b.disabled = !carrinho.length; }
+  });
+  iniciar();
+</script>
+</body>
+</html>
