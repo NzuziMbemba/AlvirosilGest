@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Balanço</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: 16px; margin-bottom: 16px; }
+  .periodo { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .periodo div { flex: 1; min-width: 130px; }
+  label { display: block; font-size: .85rem; color: var(--suave); margin: 0 0 4px; }
+  input { width: 100%; padding: 10px; border: 1px solid var(--borda); border-radius: 8px; font-size: 1rem; background: var(--fundo); color: var(--texto); }
+  button.principal { padding: 10px 16px; background: var(--cor-primaria); color: #fff; border: none; border-radius: 10px; font-size: .95rem; font-weight: 700; cursor: pointer; }
+  .linha { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--borda); font-size: .95rem; }
+  .linha.positiva span:last-child { color: #1b7a2e; }
+  .linha.negativa span:last-child { color: #c62828; }
+  .saldo { display: flex; justify-content: space-between; font-weight: 800; font-size: 1.3rem; margin-top: 10px; font-family: ui-monospace, monospace; }
+  .saldo.positivo { color: #1b7a2e; } .saldo.negativo { color: #c62828; }
+  .nota { font-size: .78rem; color: var(--suave); margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">⚖️ Balanço Financeiro</h2>
+
+  <section class="painel">
+    <div class="periodo">
+      <div><label for="inicio">De</label><input type="date" id="inicio"></div>
+      <div><label for="fim">Até</label><input type="date" id="fim"></div>
+      <button class="principal" id="botao-calcular">Calcular</button>
+    </div>
+  </section>
+
+  <section class="painel">
+    <div class="linha positiva"><span>Receita de vendas</span><span id="v-vendas">Kz 0,00</span></div>
+    <div class="linha negativa"><span>Despesas</span><span id="v-despesas">Kz 0,00</span></div>
+    <div class="linha positiva"><span>Recebido (contas a receber)</span><span id="v-recebido">Kz 0,00</span></div>
+    <div class="linha negativa"><span>Pago (contas a pagar)</span><span id="v-pago">Kz 0,00</span></div>
+    <div class="saldo" id="linha-saldo"><span>Saldo do período</span><span id="v-saldo">Kz 0,00</span></div>
+    <div class="nota">
+      Saldo = vendas + recebido − despesas − pago, no período seleccionado.
+      Não inclui o que ainda está pendente (ver abaixo).
+    </div>
+  </section>
+
+  <section class="painel">
+    <div class="linha negativa"><span>Pendente a receber (hoje)</span><span id="v-receber-pendente">Kz 0,00</span></div>
+    <div class="linha negativa"><span>Pendente a pagar (hoje)</span><span id="v-pagar-pendente">Kz 0,00</span></div>
+    <div class="nota">Estes dois valores não têm data — são o total pendente neste momento, não só do período escolhido.</div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const supabaseClient = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  const kz = (v) => "Kz " + Number(v || 0).toLocaleString("pt-AO", { minimumFractionDigits: 2 });
+
+  const hoje = new Date();
+  $("fim").value = hoje.toISOString().slice(0, 10);
+  $("inicio").value = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "balanco", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await supabaseClient.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    $("conteudo").hidden = false;
+    await calcular();
+  }
+
+  async function calcular() {
+    const { data, error } = await supabaseClient.rpc("resumo_financeiro_periodo", {
+      p_inicio: $("inicio").value, p_fim: $("fim").value,
+    });
+    if (error) { console.error(error); return; }
+    const r = data[0];
+
+    $("v-vendas").textContent = kz(r.total_vendas);
+    $("v-despesas").textContent = kz(r.total_despesas);
+    $("v-recebido").textContent = kz(r.total_recebido);
+    $("v-pago").textContent = kz(r.total_pago);
+    $("v-receber-pendente").textContent = kz(r.total_a_receber_pendente);
+    $("v-pagar-pendente").textContent = kz(r.total_a_pagar_pendente);
+
+    const saldo = Number(r.total_vendas) + Number(r.total_recebido) - Number(r.total_despesas) - Number(r.total_pago);
+    $("v-saldo").textContent = kz(saldo);
+    $("linha-saldo").className = "saldo " + (saldo >= 0 ? "positivo" : "negativo");
+  }
+
+  $("botao-calcular").addEventListener("click", calcular);
+  iniciar();
+</script>
+</body>
+</html>
