@@ -1,3 +1,16 @@
+// Mostra erros no ecrã (útil para diagnosticar páginas em branco no telemóvel)
+(function () {
+  const mostrar = (msg) => {
+    let b = document.getElementById("mb-erro");
+    if (!b) { b = document.createElement("div"); b.id = "mb-erro";
+      b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99;background:#c62828;color:#fff;padding:10px 12px;font:13px system-ui;white-space:pre-wrap";
+      (document.body || document.documentElement).appendChild(b); }
+    b.textContent = "⚠️ Erro: " + msg;
+  };
+  window.addEventListener("error", (e) => mostrar((e.message || "erro") + (e.filename ? " (" + e.filename.split("/").pop() + ":" + e.lineno + ")" : "")));
+  window.addEventListener("unhandledrejection", (e) => mostrar((e.reason && e.reason.message) || String(e.reason)));
+})();
+
 // AlviroGest — barra superior + menu com emojis (partilhado entre páginas)
 // Para acrescentar uma opção nova ao menu, basta juntar uma linha à lista ABAS.
 (function () {

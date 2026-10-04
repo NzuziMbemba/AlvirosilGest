@@ -1,5 +1,7 @@
 const VendusIntegration = (() => {
-  const FILA_CONTINGENCIA = "farmagest_facturas_pendentes";
+  // Nome próprio para o AlviroGest: o FarmaGest está no mesmo endereço (github.io)
+  // e usava "farmagest_facturas_pendentes", o que misturava as duas filas.
+  const FILA_CONTINGENCIA = "alvirogest_facturas_pendentes";
 
   async function chamarFuncaoEmissao(vendaId) {
     const { data, error } = await supabaseClient.functions.invoke(
@@ -25,10 +27,6 @@ const VendusIntegration = (() => {
       if (resultado.contingencia) {
         adicionarAFilaContingencia(vendaId);
         return { contingencia: true, motivo: "vendus_indisponivel", detalhe: resultado.detalhe };
-      }
-
-      if (resultado.ja_emitida) {
-        return { contingencia: false, ...resultado.factura };
       }
 
       return { contingencia: false, ...resultado.factura };
