@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlviroGest — Entrar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1b5e20">
+<link rel="apple-touch-icon" href="logo-farmacia.png">
 <style>
   :root {
-    --cor-primaria: #1b5e20;
+    --cor-primaria: #1b5e20; /* substituída em runtime pela cor da farmácia */
   }
   * { box-sizing: border-box; }
   body {
@@ -117,11 +120,13 @@
     const senha = document.getElementById("senha").value;
 
     try {
+      // 1. Autenticar
       const { data: sessao, error: erroLogin } =
         await supabaseClient.auth.signInWithPassword({ email, password: senha });
 
       if (erroLogin) throw new Error("E-mail ou senha incorrectos.");
 
+      // 2. Descobrir a farmácia e o papel deste utilizador
       const contexto = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
 
       if (!contexto) {
@@ -129,8 +134,11 @@
         throw new Error("Este utilizador não está associado a nenhuma farmácia.");
       }
 
+      // 3. Aplicar a marca da farmácia antes de navegar, para a transição
+      //    já aparecer com as cores/logo certos
       AuthFarmacia.aplicarMarca(contexto.farmacia);
 
+      // 4. Seguir para a app principal
       window.location.href = "app.html";
     } catch (erro) {
       mensagemErro.textContent = erro.message || "Não foi possível entrar.";
@@ -139,6 +147,8 @@
     }
   });
 
+  // Se já existir uma sessão activa (ex: recarregou a página), tenta ir
+  // logo para a app em vez de mostrar o formulário outra vez.
   (async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -149,6 +159,10 @@
       }
     }
   })();
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  }
 </script>
 
 </body>
