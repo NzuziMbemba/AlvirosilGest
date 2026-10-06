@@ -145,3 +145,4 @@
 
   window.MenuAlviro = { montar };
 })();
+{ id: "senha", ico: "🔑", nome: "Alterar Palavra-passe", url: "alterar-senha.html" },
