@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Gestão de farmácia, do balcão às contas</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1b4d2e">
+<link rel="apple-touch-icon" href="logo-farmacia.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tinta: #1c2a1f;
+    --verde: #1b4d2e;
+    --verde-escuro: #11331f;
+    --papel: #f7f4ec;
+    --papel-linha: #e3ddc9;
+    --ambar: #a8752c;
+    --suave: #5c6459;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    background: var(--papel);
+    color: var(--tinta);
+    line-height: 1.5;
+  }
+  .serif { font-family: "Fraunces", Georgia, serif; }
+
+  header.cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+  }
+  .marca svg { flex-shrink: 0; }
+  .link-entrar {
+    font-size: 0.92rem;
+    color: var(--verde-escuro);
+    text-decoration: none;
+    border-bottom: 1px solid var(--papel-linha);
+    padding-bottom: 2px;
+  }
+  .link-entrar:hover { border-color: var(--verde); }
+
+  .faixa {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .heroi {
+    padding: 56px 0 64px;
+    display: grid;
+    gap: 36px;
+  }
+  @media (min-width: 760px) {
+    .heroi { grid-template-columns: 1.2fr 1fr; align-items: center; padding: 80px 0 96px; }
+  }
+  .heroi h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    max-width: 14ch;
+  }
+  .heroi p.sub {
+    margin-top: 18px;
+    font-size: 1.08rem;
+    color: var(--suave);
+    max-width: 46ch;
+  }
+  .accoes-heroi {
+    margin-top: 30px;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .botao {
+    display: inline-block;
+    padding: 13px 24px;
+    background: var(--verde);
+    color: #fdfbf4;
+    text-decoration: none;
+    border-radius: 3px;
+    font-size: 0.98rem;
+    font-weight: 500;
+    transition: background 0.15s ease;
+  }
+  .botao:hover { background: var(--verde-escuro); }
+  .nota-heroi { font-size: 0.86rem; color: var(--suave); }
+
+  .selo-conta {
+    border: 1px solid var(--papel-linha);
+    background: #fffdf7;
+    padding: 22px 24px;
+    border-radius: 4px;
+  }
+  .selo-conta p.rotulo {
+    font-size: 0.78rem;
+    color: var(--ambar);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .selo-conta p.corpo {
+    font-size: 0.95rem;
+    color: var(--tinta);
+  }
+
+  .divisor { border-top: 1px solid var(--papel-linha); }
+
+  .secao { padding: 56px 0; }
+  .secao h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 1.6rem;
+    max-width: 20ch;
+    margin-bottom: 34px;
+  }
+
+  .lista-funcoes {
+    display: grid;
+    gap: 0;
+  }
+  .item-funcao {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 22px 0;
+    border-top: 1px solid var(--papel-linha);
+  }
+  .item-funcao:last-child { border-bottom: 1px solid var(--papel-linha); }
+  @media (min-width: 640px) {
+    .item-funcao { grid-template-columns: 220px 1fr; gap: 24px; align-items: baseline; }
+  }
+  .item-funcao h3 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 1.12rem;
+  }
+  .item-funcao p { color: var(--suave); font-size: 0.97rem; max-width: 52ch; }
+
+  .rodape {
+    padding: 44px 0 56px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 0.85rem;
+    color: var(--suave);
+  }
+  .rodape a { color: var(--verde-escuro); }
+</style>
+</head>
+<body>
+
+<header class="cabecalho">
+  <div class="marca">
+    <img src="logo-farmacia.png" alt="" width="30" height="30" style="object-fit:contain; border-radius:3px">
+    AlviroGest
+  </div>
+  <a class="link-entrar" href="login.html">Entrar →</a>
+</header>
+
+<section class="faixa heroi">
+  <div>
+    <h1>A tua farmácia, organizada do balcão às contas.</h1>
+    <p class="sub">
+      Vendas, stock, finanças e facturação certificada — tudo num único
+      sistema, pensado para o dia-a-dia de uma farmácia angolana.
+    </p>
+    <div class="accoes-heroi">
+      <a class="botao" href="login.html">Entrar na minha farmácia</a>
+      <span class="nota-heroi">Já és cliente? A tua conta está pronta a usar.</span>
+    </div>
+  </div>
+
+  <div class="selo-conta">
+    <p class="rotulo">Cada farmácia, o seu espaço</p>
+    <p class="corpo">
+      O AlviroGest guarda os dados de cada farmácia em separado — produtos,
+      vendas e equipa de uma farmácia nunca ficam visíveis a outra. Entras
+      sempre na tua própria conta, com o teu NIF e a tua equipa.
+    </p>
+  </div>
+</section>
+
+<div class="divisor"></div>
+
+<section class="faixa secao">
+  <h2>O que trata por ti</h2>
+  <div class="lista-funcoes">
+    <div class="item-funcao">
+      <h3>Balcão e caixas</h3>
+      <p>Vendas rápidas, código de barras, várias caixas em simultâneo sem risco de vender o mesmo stock duas vezes.</p>
+    </div>
+    <div class="item-funcao">
+      <h3>Stock</h3>
+      <p>Produtos, quantidades e validades sempre actualizados a cada venda, sem folhas à parte.</p>
+    </div>
+    <div class="item-funcao">
+      <h3>Finanças</h3>
+      <p>Despesas, contas a pagar e a receber, fecho de caixa diário e mensal, balanço sempre à mão.</p>
+    </div>
+    <div class="item-funcao">
+      <h3>Facturação certificada</h3>
+      <p>Cada venda gera a factura fiscal exigida pela AGT, sem passos extra para a tua equipa.</p>
+    </div>
+    <div class="item-funcao">
+      <h3>Equipa</h3>
+      <p>Gerente, farmacêutico e caixa, cada um com o acesso certo — nem mais, nem menos.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divisor"></div>
+
+<footer class="faixa rodape">
+  <span>AlviroGest — gestão para farmácias angolanas.</span>
+  <a href="login.html">Entrar</a>
+</footer>
+
+</body>
+</html>
