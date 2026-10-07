@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Facturação</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 480px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: 20px; }
+  .painel p.explicacao { font-size: .85rem; color: var(--suave); margin-top: 0; }
+  label { display: block; font-size: .85rem; color: var(--suave); margin: 12px 0 4px; }
+  input { width: 100%; padding: 10px; border: 1px solid var(--borda); border-radius: 8px; font-size: 1rem; background: var(--fundo); color: var(--texto); }
+  button.principal { width: 100%; margin-top: 16px; padding: 12px; background: var(--cor-primaria); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  .msg { font-size: .9rem; margin-top: 10px; min-height: 1.2em; } .msg.ok { color: #1b7a2e; } .msg.erro { color: #c62828; }
+  .aviso-acesso { max-width: 480px; margin: 60px auto; text-align: center; color: var(--suave); }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">🧾 Facturação</h2>
+
+  <section class="painel">
+    <p class="explicacao">
+      API KEY obtida na tua conta MoMenu, em
+      <em>Desenvolvedores &gt; API Keys</em>.
+      Sem isto, as vendas ficam registadas mas as facturas fiscais entram
+      em contingência até configurares a chave.
+      Esta página é visível só para o Gerente.
+    </p>
+    <form id="form-api">
+      <label for="api-key">API KEY do MoMenu</label>
+      <input type="password" id="api-key" autocomplete="off" placeholder="•••••••••••••••">
+      <button type="submit" class="principal">Guardar API KEY</button>
+    </form>
+    <div class="msg" id="msg"></div>
+  </section>
+</main>
+
+<div class="aviso-acesso" id="aviso-sem-acesso" hidden>
+  <p>Esta área é só para o Gerente da farmácia.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const supabaseClient = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  let farmaciaAtual = null;
+
+  async function iniciar() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(supabaseClient);
+    if (!ctx) { location.href = "login.html"; return; }
+
+    MenuAlviro.montar({ papel: ctx.papel, activo: "facturacao", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await supabaseClient.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+
+    if (ctx.papel !== "gerente") {
+      $("aviso-sem-acesso").hidden = false;
+      return;
+    }
+
+    farmaciaAtual = ctx.farmacia;
+    $("conteudo").hidden = false;
+    // Nunca pré-preenchemos o campo com a chave actual, mesmo mascarada.
+  }
+
+  $("form-api").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("msg"); msg.textContent = ""; msg.className = "msg";
+
+    const apiKey = $("api-key").value.trim();
+    if (!apiKey) {
+      msg.textContent = "Introduz a API KEY antes de guardar.";
+      msg.classList.add("erro");
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("farmacia_fiscal")
+      .upsert({ farmacia_id: farmaciaAtual.id, api_key_facturacao: apiKey, actualizado_em: new Date().toISOString() });
+
+    if (error) {
+      msg.textContent = "Não foi possível guardar a API KEY.";
+      msg.classList.add("erro");
+      console.error(error);
+      return;
+    }
+
+    msg.textContent = "API KEY guardada. As próximas vendas já emitem factura.";
+    msg.classList.add("ok");
+    $("api-key").value = "";
+  });
+
+  iniciar();
+</script>
+</body>
+</html>
