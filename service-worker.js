@@ -4,7 +4,7 @@
 // produtos, etc.) continuam sempre a vir do Supabase em tempo real — isto
 // não torna o AlviroGest offline-first, só evita uma tela em branco.
 
-const CACHE = "alvirogest-v2";
+const CACHE = "alvirogest-v3";
 
 const FICHEIROS_ESSENCIAIS = [
   "login.html",
@@ -56,8 +56,13 @@ self.addEventListener("fetch", (evento) => {
       resposta ||
       fetch(evento.request)
         .then((respostaRede) => {
-          const copia = respostaRede.clone();
-          caches.open(CACHE).then((cache) => cache.put(evento.request, copia));
+          // Nunca guardar em cache uma resposta de erro (404, etc.) — só
+          // sucessos, para um ficheiro que ainda não existia na altura
+          // nunca ficar "preso" em erro depois de ser criado.
+          if (respostaRede.ok) {
+            const copia = respostaRede.clone();
+            caches.open(CACHE).then((cache) => cache.put(evento.request, copia));
+          }
           return respostaRede;
         })
         .catch(() => caches.match("login.html")),
