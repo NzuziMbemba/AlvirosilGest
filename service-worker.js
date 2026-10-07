@@ -4,7 +4,7 @@
 // produtos, etc.) continuam sempre a vir do Supabase em tempo real — isto
 // não torna o AlviroGest offline-first, só evita uma tela em branco.
 
-const CACHE = "alvirogest-v1";
+const CACHE = "alvirogest-v2";
 
 const FICHEIROS_ESSENCIAIS = [
   "login.html",
