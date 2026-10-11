@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Contabilidade</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 14px; }
+  .painel h3 { margin: 0 0 10px; font-size: 1rem; }
+  .suave { color: var(--suave); font-size: .83rem; }
+  .barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; } .barra > div { flex: 1; min-width: 140px; }
+  label { display: block; font-size: .75rem; color: var(--suave); margin: 10px 0 3px; font-weight: 600; }
+  input, select, textarea { width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; font-family: inherit; background: var(--fundo); color: var(--texto); }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn { background: var(--cor-primaria); color: #fff; border: none; border-radius: 999px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-size: .85rem; }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 8px; padding: 5px 9px; cursor: pointer; font-size: .78rem; text-decoration: none; display: inline-block; }
+  .btn3 { background: none; border: 1px solid #c62828; color: #c62828; border-radius: 8px; padding: 5px 9px; cursor: pointer; font-size: .78rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  .prog { height: 8px; background: var(--borda); border-radius: 6px; overflow: hidden; margin: 8px 0 4px; } .prog i { display: block; height: 100%; background: var(--cor-primaria); }
+  .item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+  .item .ic { font-size: 1.3rem; } .item .tx { flex: 1; min-width: 0; } .item small { display: block; color: var(--suave); font-size: .78rem; margin-top: 2px; }
+  .atraso { color: #c62828; font-weight: 700; } .feito { color: #1b7a2e; font-weight: 700; }
+  .acc { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .links a { text-align: center; padding: 10px; }
+  .msg { font-size: .88rem; min-height: 1em; color: #c62828; }
+</style>
+</head>
+<body>
+<div id="topo"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit">🧮 Contabilidade</h2>
+  <section class="painel"><div class="barra"><div><label style="margin-top:0">Mês</label><input type="month" id="mes"></div>
+    <button class="btn" id="novo">+ Novo trabalho</button></div>
+    <div class="prog"><i id="prog"></i></div><div class="suave" id="prog-txt"></div>
+    <form id="form" hidden>
+      <label>Trabalho</label><input id="f-titulo" list="sugestoes" required maxlength="100" placeholder="Ex.: Entregar IRT à AGT">
+      <datalist id="sugestoes"><option value="Processar a folha de salários"><option value="Pagar o INSS"><option value="Entregar o IRT à AGT"><option value="Declaração Simplificada de IVA e pagamento (7%)"><option value="Enviar facturas e extractos ao contabilista"><option value="Imposto Industrial"><option value="Renovar licenças e alvarás"></datalist>
+      <div class="duas"><div><label>Periodicidade</label><select id="f-per"><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="anual">Anual</option><option value="pontual">Pontual</option></select></div>
+        <div><label>Dia de vencimento</label><input type="number" id="f-dia" min="1" max="31" placeholder="Ex.: 10"></div></div>
+      <div id="f-mes-box" hidden><label>Mês de referência (trimestral: 1.º mês; anual: o mês)</label><input type="number" id="f-mes" min="1" max="12"></div>
+      <label>Notas (ex.: nome do contabilista, o que entregar)</label><input id="f-notas" maxlength="200">
+      <button class="btn" style="width:100%;margin-top:12px">Guardar trabalho</button>
+    </form><div class="msg" id="msg"></div></section>
+
+  <section class="painel"><h3>✅ Trabalhos do mês</h3><div id="lista"></div>
+    <button class="btn2" id="padrao" hidden style="margin-top:10px">➕ Adicionar os trabalhos habituais</button>
+    <p class="suave">Prazos recolhidos em fontes públicas. As datas podem mudar, por isso confirme-as com o contabilista.</p></section>
+
+  <section class="painel"><h3>📦 Para entregar ao contabilista</h3>
+    <div class="links"><a class="btn2" href="relatorios.html">📊 Relatório de vendas</a><a class="btn2" href="salarios.html">💰 Folha de salários</a>
+      <a class="btn2" href="financas.html">💸 Despesas e dívidas</a><a class="btn2" href="arquivo.html">📁 Arquivo de documentos</a></div></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const sb = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  // Prazos recolhidos em fontes públicas (Out/2026). Confirme sempre com o contabilista.
+  const PADRAO = [
+    { titulo: "Processar a folha de salários", periodicidade: "mensal", notas: "Use a aba 💰 Salários" },
+    { titulo: "Pagar o INSS (guia) e entregar o mapa de remunerações", periodicidade: "mensal", dia_vencimento: 10, notas: "Até dia 10 do mês seguinte; juros de mora de 1% ao mês" },
+    { titulo: "Entregar o IRT retido e o mapa de remunerações (Portal do Contribuinte)", periodicidade: "mensal", notas: "Mês seguinte — confirmar o dia com o contabilista" },
+    { titulo: "Declaração Simplificada de IVA e pagamento (7%)", periodicidade: "mensal", notas: "Último dia útil do mês seguinte (confirmar)" },
+    { titulo: "Enviar facturas, extractos e despesas ao contabilista", periodicidade: "mensal" },
+    { titulo: "Imposto Industrial — declaração simplificada", periodicidade: "anual", mes_vencimento: 4, dia_vencimento: 30, notas: "Até ao último dia de Abril; multa de 300 mil Kz se atrasar (confirmar)" },
+    { titulo: "Declaração anual Modelo 2 do IRT", periodicidade: "anual", mes_vencimento: 2, notas: "Prazo a confirmar com o contabilista" },
+    { titulo: "Rever o enquadramento no regime de IVA", periodicidade: "anual", mes_vencimento: 1, notas: "Regime simplificado: volume de negócios abaixo de 350 milhões de Kz" },
+    { titulo: "Preparar a mudança de IRT para IRPS (1 Jan 2027)", periodicidade: "pontual", notas: "Rever o cálculo dos salários no AlviroGest" },
+    { titulo: "Renovar licenças e alvarás da farmácia", periodicidade: "anual", notas: "Defina o mês e o dia da sua licença" },
+  ];
+  let farm = null, trabalhos = [], conclusoes = [];
+
+  async function iniciar() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(sb);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "contabilidade", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await sb.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    if (ctx.papel !== "gerente") { document.body.insertAdjacentHTML("beforeend", '<p style="text-align:center;margin:60px 16px">Esta área é só para o Gerente da farmácia.</p>'); return; }
+    farm = ctx.farmacia.id; const h = new Date(); $("mes").value = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}`;
+    $("conteudo").hidden = false; await carregar();
+  }
+
+  async function carregar() {
+    const [t, c] = await Promise.all([sb.from("trabalhos_contabilidade").select("*").order("criado_em"), sb.from("conclusoes_trabalho").select("*").in("periodo", [$("mes").value, "pontual"])]);
+    if (t.error || c.error) { $("msg").textContent = "Erro: " + (t.error || c.error).message; return; }
+    trabalhos = t.data; conclusoes = c.data; $("msg").textContent = ""; desenhar();
+  }
+
+  const visivel = (t, m) => t.periodicidade === "mensal" || t.periodicidade === "pontual"
+    || (t.periodicidade === "trimestral" && (!t.mes_vencimento || (((m - t.mes_vencimento) % 3) + 3) % 3 === 0))
+    || (t.periodicidade === "anual" && (!t.mes_vencimento || m === t.mes_vencimento));
+  const periodoDe = (t) => t.periodicidade === "pontual" ? "pontual" : $("mes").value;
+
+  function desenhar() {
+    const m = Number($("mes").value.split("-")[1]), h = new Date(), agora = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}`;
+    const lista = trabalhos.filter((t) => visivel(t, m)); let feitos = 0;
+    $("padrao").hidden = trabalhos.length > 0;
+    $("lista").innerHTML = lista.map((t) => {
+      const c = conclusoes.find((x) => x.trabalho_id === t.id && x.periodo === periodoDe(t)); if (c) feitos++;
+      const atraso = !c && t.dia_vencimento && t.periodicidade !== "pontual" && ($("mes").value < agora || ($("mes").value === agora && h.getDate() > t.dia_vencimento));
+      return `<div class="item"><div class="ic">${c ? "✅" : atraso ? "⚠️" : "⬜"}</div><div class="tx"><strong>${esc(t.titulo)}</strong>
+        <small>${esc(t.periodicidade)}${t.dia_vencimento ? " · vence dia " + t.dia_vencimento : ""}${t.notas ? " · " + esc(t.notas) : ""}</small>
+        ${c ? `<small class="feito">Feito em ${new Date(c.concluido_em).toLocaleDateString("pt-AO")}${c.nota ? " — " + esc(c.nota) : ""}</small>` : atraso ? '<small class="atraso">Em atraso</small>' : ""}</div>
+        <div class="acc">${c ? `<button class="btn2" data-undo="${esc(c.id)}">↩️ Desfazer</button>` : `<button class="btn" data-ok="${esc(t.id)}">Feito</button>`}<button class="btn3" data-del="${esc(t.id)}">🗑️</button></div></div>`;
+    }).join("") || '<p class="suave">Ainda não há trabalhos. Toque em "+ Novo trabalho".</p>';
+    $("prog").style.width = lista.length ? feitos / lista.length * 100 + "%" : "0%";
+    $("prog-txt").textContent = lista.length ? `${feitos} de ${lista.length} concluídos neste mês` : "";
+  }
+
+  $("mes").addEventListener("change", carregar);
+  $("novo").addEventListener("click", () => { $("form").hidden = !$("form").hidden; });
+  $("f-per").addEventListener("change", () => { $("f-mes-box").hidden = !["trimestral", "anual"].includes($("f-per").value); });
+  $("padrao").addEventListener("click", async () => {
+    const r = await sb.from("trabalhos_contabilidade").insert(PADRAO.map((t) => ({ farmacia_id: farm, titulo: t.titulo, periodicidade: t.periodicidade, dia_vencimento: t.dia_vencimento ?? null, mes_vencimento: t.mes_vencimento ?? null, notas: t.notas ?? null })));
+    if (r.error) { $("msg").textContent = "Erro: " + r.error.message; return; } await carregar();
+  });
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault(); const n = (i) => $(i).value === "" ? null : Number($(i).value);
+    const r = await sb.from("trabalhos_contabilidade").insert({ farmacia_id: farm, titulo: $("f-titulo").value.trim(), periodicidade: $("f-per").value,
+      dia_vencimento: n("f-dia"), mes_vencimento: ["trimestral", "anual"].includes($("f-per").value) ? n("f-mes") : null, notas: $("f-notas").value.trim() || null });
+    if (r.error) { $("msg").textContent = "Não foi possível guardar: " + r.error.message; return; }
+    $("form").reset(); $("form").hidden = true; await carregar();
+  });
+  $("lista").addEventListener("click", async (e) => {
+    const ok = e.target.closest("[data-ok]"), un = e.target.closest("[data-undo]"), del = e.target.closest("[data-del]");
+    if (ok) { const t = trabalhos.find((x) => x.id === ok.dataset.ok), nota = prompt("Nota (opcional):", "");
+      if (nota === null) return;
+      const r = await sb.from("conclusoes_trabalho").insert({ trabalho_id: t.id, farmacia_id: farm, periodo: periodoDe(t), nota: nota.trim() || null });
+      if (r.error) { $("msg").textContent = "Erro: " + r.error.message; return; } await carregar(); }
+    if (un) { await sb.from("conclusoes_trabalho").delete().eq("id", un.dataset.undo); await carregar(); }
+    if (del && confirm("Apagar este trabalho e o seu histórico?")) { await sb.from("trabalhos_contabilidade").delete().eq("id", del.dataset.del); await carregar(); }
+  });
+  iniciar();
+</script>
+</body>
+</html>

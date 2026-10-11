@@ -22,6 +22,8 @@
     { id: "pessoas", ico: "👥", nome: "Gestão de Pessoas", url: "pessoas.html", papeis: ["gerente", "gerente_administrativo", "rh", "secretario"] },
     { id: "salarios", ico: "💰", nome: "Salários", url: "salarios.html", papeis: ["gerente", "gerente_administrativo"] },
     { id: "financas", ico: "💸", nome: "Finanças", url: "financas.html", papeis: ["gerente", "gerente_administrativo"] },
+    { id: "contabilidade", ico: "🧮", nome: "Contabilidade", url: "contabilidade.html", papeis: ["gerente"] },
+    { id: "relatorios", ico: "📊", nome: "Relatórios", url: "relatorios.html", papeis: ["gerente"] },
     { id: "balanco", ico: "⚖️", nome: "Balanço", url: "balanco.html", papeis: ["gerente", "gerente_administrativo"] },
     { id: "arquivo", ico: "📁", nome: "Arquivo", url: "arquivo.html", papeis: ["gerente", "farmaceutico", "caixa", "gerente_administrativo", "rh", "secretario"] },
     { id: "documentos", ico: "📄", nome: "Documentos RH", url: "documentos-rh.html", papeis: ["gerente", "gerente_administrativo", "rh", "secretario"] },

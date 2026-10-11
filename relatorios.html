@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlviroGest — Relatório Mensal</title>
+<style>
+  * { box-sizing: border-box; } [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h2.tit { font-size: 1.3rem; margin: 6px 0 12px; }
+  .painel { background: var(--cartao); border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 14px; }
+  .painel h3 { margin: 0 0 10px; font-size: 1rem; }
+  .barra { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+  .barra > div { flex: 1; min-width: 140px; }
+  label { display: block; font-size: .75rem; color: var(--suave); margin-bottom: 3px; font-weight: 600; }
+  input { width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; background: var(--fundo); color: var(--texto); }
+  .btn { background: var(--cor-primaria); color: #fff; border: none; border-radius: 999px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-size: .85rem; }
+  .btn2 { background: none; border: 1px solid var(--cor-primaria); color: var(--cor-primaria); border-radius: 8px; padding: 5px 9px; cursor: pointer; font-size: .78rem; }
+  html[data-tema="dark"] .btn2 { color: #7fd68a; border-color: #7fd68a; }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 720px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+  .kpis div { background: rgba(46,125,50,.10); border-radius: 10px; padding: 10px; font-size: .78rem; } .kpis b { display: block; font-size: 1.1rem; margin-top: 2px; }
+  .linha { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--borda); font-size: .9rem; }
+  .linha small { color: var(--suave); display: block; }
+  .bar { height: 6px; background: var(--borda); border-radius: 4px; margin-top: 4px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--cor-primaria); }
+  .tag { font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: #e3f6e6; color: #1b7a2e; } .tag.no { background: #fdecea; color: #c62828; }
+  .msg { font-size: .88rem; color: #c62828; min-height: 1em; }
+  .cab-print { display: none; align-items: center; gap: 12px; border-bottom: 3px solid #1b5e20; padding-bottom: 8px; margin-bottom: 10px; } .cab-print img { height: 52px; }
+  @media print { #topo, .nao-imprimir { display: none !important; } body { background: #fff; color: #000; } .painel { box-shadow: none; } .cab-print { display: flex; } }
+</style>
+</head>
+<body>
+<div id="topo" class="nao-imprimir"></div>
+<main id="conteudo" hidden>
+  <h2 class="tit nao-imprimir">📊 Relatório Mensal</h2>
+  <section class="painel nao-imprimir"><div class="barra">
+    <div><label>Mês</label><input type="month" id="mes"></div>
+    <button class="btn" id="imprimir">🖨️ Imprimir</button><button class="btn2" id="csv">⬇️ CSV</button></div><div class="msg" id="msg"></div></section>
+
+  <div id="relatorio" hidden>
+    <div class="cab-print"><img src="logo-empresa.png" alt="" onerror="this.remove()"><div><strong id="p-nome"></strong><div id="p-mes"></div></div></div>
+    <section class="painel"><div class="kpis" id="kpis"></div></section>
+    <section class="painel"><h3>🧾 Facturas</h3><div id="facturas"></div></section>
+    <section class="painel"><h3>💳 Por forma de pagamento</h3><div id="pagamentos"></div></section>
+    <section class="painel"><h3>🏆 Produtos mais vendidos</h3><div id="top"></div></section>
+    <section class="painel"><h3>📅 Vendas por dia</h3><div id="dias"></div></section>
+    <section class="painel"><h3>📋 Vendas do mês</h3><div id="lista"></div></section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-farmacia.js"></script>
+<script src="menu.js"></script>
+<script>
+  const sb = window.supabase.createClient("https://qillinntbhoecurnuheq.supabase.co", "sb_publishable_Qm5jmqjTg9qAK7df5KRwSQ_44ilsouh");
+  const $ = (id) => document.getElementById(id);
+  const kz = (v) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(v || 0);
+  const esc = (t) => { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; };
+  const dataDe = (v) => String(v.data_venda ?? v.created_at ?? "").slice(0, 10);
+  const pt = (d) => d ? d.split("-").reverse().join("/") : "—";
+  let vendas = [], facturas = {}, farmNome = "";
+
+  async function iniciar() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { location.href = "login.html"; return; }
+    const ctx = await AuthFarmacia.carregarContextoFarmacia(sb);
+    if (!ctx) { location.href = "login.html"; return; }
+    MenuAlviro.montar({ papel: ctx.papel, activo: "relatorios", nome: user.user_metadata?.nome || (user.email || "").split("@")[0],
+      aoSair: async () => { await sb.auth.signOut(); try { AuthFarmacia.limparContexto(); } catch (_) {} location.href = "login.html"; } });
+    AuthFarmacia.aplicarMarca(ctx.farmacia);
+    if (ctx.papel !== "gerente") { document.body.insertAdjacentHTML("beforeend", '<p style="text-align:center;margin:60px 16px">Esta área é só para o Gerente da farmácia.</p>'); return; }
+    farmNome = ctx.farmacia.nome || "";
+    const h = new Date(); $("mes").value = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}`;
+    $("conteudo").hidden = false; await carregar();
+  }
+
+  async function consultar(col, ini, fim) {
+    const q = (sel) => sb.from("vendas").select(sel).gte(col, ini).lt(col, fim).order(col, { ascending: false });
+    let r = await q("*, itens_venda(*), cliente:clientes(nome,nif)");
+    if (r.error) r = await q("*");
+    return r;
+  }
+
+  async function carregar() {
+    $("msg").textContent = "A carregar...";
+    const [a, m] = $("mes").value.split("-").map(Number);
+    const ini = `${$("mes").value}-01`, fim = `${m === 12 ? a + 1 : a}-${String((m % 12) + 1).padStart(2, "0")}-01`;
+    let r = await consultar("data_venda", ini, fim);
+    if (r.error) r = await consultar("created_at", ini, fim);
+    if (r.error) { console.error(r.error); $("msg").textContent = "Não foi possível carregar as vendas: " + r.error.message; return; }
+    vendas = r.data;
+    facturas = {};
+    const f = await sb.from("facturas_vendus").select("venda_id, estado, numero_factura, pdf_url").limit(3000);
+    (f.data || []).forEach((x) => { if (!facturas[x.venda_id] || x.estado === "emitida") facturas[x.venda_id] = x; });
+    const d = await sb.from("despesas").select("valor").gte("data_despesa", ini).lt("data_despesa", fim);
+    const despesas = d.error ? null : d.data.reduce((s, x) => s + Number(x.valor), 0);
+    $("msg").textContent = ""; desenhar(despesas);
+  }
+
+  function desenhar(despesas) {
+    $("relatorio").hidden = false; $("p-nome").textContent = farmNome;
+    $("p-mes").textContent = "Relatório de vendas · " + new Date(`${$("mes").value}-15`).toLocaleDateString("pt-AO", { month: "long", year: "numeric" });
+    const total = vendas.reduce((s, v) => s + Number(v.total || 0), 0), n = vendas.length;
+    $("kpis").innerHTML = `<div>Total vendido<b>${kz(total)}</b></div><div>Nº de vendas<b>${n}</b></div><div>Ticket médio<b>${kz(n ? total / n : 0)}</b></div>`
+      + `<div>IVA simplificado (7% do recebido) — estimativa<b>${kz(total * 0.07)}</b></div>`
+      + (despesas == null ? "" : `<div>Despesas do mês<b>${kz(despesas)}</b></div><div>Resultado (vendas − despesas)<b>${kz(total - despesas)}</b></div>`);
+
+    const emitidas = vendas.filter((v) => facturas[v.id]?.estado === "emitida").length;
+    $("facturas").innerHTML = `<div class="linha"><span>✅ Emitidas</span><strong>${emitidas}</strong></div><div class="linha"><span>⚠️ Sem factura / em erro</span><strong>${n - emitidas}</strong></div>`;
+
+    const por = {}; vendas.forEach((v) => { const k = v.forma_pagamento || "Não indicada"; por[k] = (por[k] || 0) + Number(v.total || 0); });
+    $("pagamentos").innerHTML = Object.entries(por).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+      `<div class="linha"><div style="flex:1">${esc(k)}<div class="bar"><i style="width:${total ? v / total * 100 : 0}%"></i></div></div><strong>${kz(v)}</strong></div>`).join("") || "<p>Sem vendas.</p>";
+
+    const prod = {};
+    vendas.forEach((v) => (v.itens_venda || []).forEach((i) => { const nome = i.descricao_produto ?? i.nome_produto ?? i.nome ?? "Produto";
+      const q = Number(i.quantidade || 0), val = Number(i.subtotal ?? (Number(i.preco_unitario || 0) * q));
+      prod[nome] = prod[nome] || { q: 0, v: 0 }; prod[nome].q += q; prod[nome].v += val; }));
+    $("top").innerHTML = Object.entries(prod).sort((a, b) => b[1].v - a[1].v).slice(0, 10).map(([k, x]) =>
+      `<div class="linha"><div>${esc(k)}<small>${x.q} unidade(s)</small></div><strong>${kz(x.v)}</strong></div>`).join("") || '<p class="msg" style="color:inherit">Sem detalhe de produtos neste mês.</p>';
+
+    const dia = {}; vendas.forEach((v) => { const k = dataDe(v); dia[k] = (dia[k] || 0) + Number(v.total || 0); });
+    const maxD = Math.max(1, ...Object.values(dia));
+    $("dias").innerHTML = Object.entries(dia).sort().map(([k, v]) =>
+      `<div class="linha"><div style="flex:1">${pt(k)}<div class="bar"><i style="width:${v / maxD * 100}%"></i></div></div><strong>${kz(v)}</strong></div>`).join("") || "<p>Sem vendas.</p>";
+
+    $("lista").innerHTML = vendas.map((v) => { const f = facturas[v.id], ok = f?.estado === "emitida", url = ok && /^https:\/\//.test(f.pdf_url || "") ? f.pdf_url : null;
+      return `<div class="linha"><div>${pt(dataDe(v))} · ${esc(v.cliente?.nome || "Consumidor Final")}<small>${esc(v.forma_pagamento || "—")} · ${ok ? `<span class="tag">Factura ${esc(f.numero_factura || "")}</span>` : '<span class="tag no">Sem factura</span>'}</small></div>
+        <div style="text-align:right"><strong>${kz(v.total)}</strong>${url ? `<br><a class="btn2 nao-imprimir" href="${esc(url)}" target="_blank" rel="noopener">🖨️ Factura</a>` : ""}</div></div>`; }).join("") || "<p>Sem vendas neste mês.</p>";
+  }
+
+  $("mes").addEventListener("change", carregar);
+  $("imprimir").addEventListener("click", () => window.print());
+  $("csv").addEventListener("click", () => {
+    const c = (t) => `"${String(t ?? "").replace(/"/g, '""')}"`;
+    const linhas = [["Data", "Cliente", "NIF", "Forma de pagamento", "Total", "Factura"].map(c).join(";")].concat(vendas.map((v) =>
+      [pt(dataDe(v)), v.cliente?.nome || "Consumidor Final", v.cliente?.nif || "", v.forma_pagamento || "", Number(v.total || 0).toFixed(2), facturas[v.id]?.numero_factura || ""].map(c).join(";")));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + linhas.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = `vendas-${$("mes").value}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  });
+  iniciar();
+</script>
+</body>
+</html>
