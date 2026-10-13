@@ -20,7 +20,7 @@
     { id: "produtos", ico: "📦", nome: "Produtos", url: "produtos.html", papeis: ["gerente", "farmaceutico", "gerente_administrativo", "rh", "secretario"] },
     { id: "funcionarios", ico: "🧑‍💼", nome: "Funcionários", url: "funcionarios.html", papeis: ["gerente", "gerente_administrativo"] },
     { id: "pessoas", ico: "👥", nome: "Gestão de Pessoas", url: "pessoas.html", papeis: ["gerente", "gerente_administrativo", "rh", "secretario"] },
-    { id: "salarios", ico: "💰", nome: "Salários", url: "salarios.html", papeis: ["gerente", "gerente_administrativo"] },
+    { id: "salarios", ico: "💰", nome: "Salários", url: "salarios.html", papeis: ["gerente", "gerente_administrativo", "farmaceutico", "caixa", "rh", "secretario"] },
     { id: "financas", ico: "💸", nome: "Finanças", url: "financas.html", papeis: ["gerente", "gerente_administrativo"] },
     { id: "contabilidade", ico: "🧮", nome: "Contabilidade", url: "contabilidade.html", papeis: ["gerente"] },
     { id: "relatorios", ico: "📊", nome: "Relatórios", url: "relatorios.html", papeis: ["gerente"] },
